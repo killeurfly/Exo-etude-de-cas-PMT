@@ -1,1 +1,15 @@
-node_modules/\ntarget/\n.vscode/\n*.log
+# Maven / Java
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+
+# Angular / Node
+node_modules/
+dist/
+.env
+
+# VS Code
+.vscode/
