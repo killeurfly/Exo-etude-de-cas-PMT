@@ -1,6 +1,6 @@
 package com.exo_PMT.pmt_backend.controller;
 
-import com.exo_PMT.pmt_backend.model.User;
+import com.exo_PMT.pmt_backend.entity.User;
 import com.exo_PMT.pmt_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

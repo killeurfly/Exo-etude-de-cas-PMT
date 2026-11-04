@@ -1,6 +1,6 @@
 package com.exo_PMT.pmt_backend.service;
 
-import com.exo_PMT.pmt_backend.model.User;
+import com.exo_PMT.pmt_backend.entity.User;
 import com.exo_PMT.pmt_backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
