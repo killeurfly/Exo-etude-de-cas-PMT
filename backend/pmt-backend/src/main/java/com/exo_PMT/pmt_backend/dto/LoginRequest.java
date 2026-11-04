@@ -1,20 +1,16 @@
 package com.exo_PMT.pmt_backend.dto;
 
 public class LoginRequest {
-
     private String email;
     private String password;
 
-    // Constructeur vide (nécessaire pour Jackson)
     public LoginRequest() {}
 
-    // Constructeur complet
     public LoginRequest(String email, String password) {
         this.email = email;
         this.password = password;
     }
 
-    // Getters et setters
     public String getEmail() {
         return email;
     }

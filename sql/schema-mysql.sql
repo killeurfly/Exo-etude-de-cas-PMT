@@ -124,7 +124,9 @@ VALUES
   ('Alice Admin', 'alice@example.test', 'alice123'),
   ('Marc Member', 'marc@example.test', 'marc123'),
   ('Olivia Observer', 'olivia@example.test', 'olivia123')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  password = VALUES(password);
 
 SET @alice_id = (SELECT id FROM users WHERE email = 'alice@example.test');
 SET @marc_id = (SELECT id FROM users WHERE email = 'marc@example.test');

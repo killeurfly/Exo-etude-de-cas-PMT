@@ -1,30 +1,36 @@
 // src/app/components/register/register.ts
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
-import { User } from '../../models/user';
+import { RouterLink } from '@angular/router';
+import { RegisterRequest } from '../../models/auth';
+import { AuthService, getAuthErrorMessage } from '../../services/auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './register.html',
 })
 export class RegisterComponent {
-  user: User = { email: '', password: '', name: '' };
-  message: string = '';
+  user: RegisterRequest = { email: '', password: '', name: '' };
+  readonly message = signal('');
+  readonly loading = signal(false);
 
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
-  register() {
+  register(): void {
+    this.message.set('');
+    this.loading.set(true);
+
     this.authService.register(this.user).subscribe({
-      next: (res) => {
-        this.message = 'Inscription réussie !';
-        console.log(res);
+      next: () => {
+        this.loading.set(false);
+        this.message.set('Inscription réussie. Vous pouvez vous connecter.');
       },
-      error: (err) => {
-        this.message = 'Erreur lors de l’inscription';
-        console.error(err);
+      error: (error: unknown) => {
+        this.loading.set(false);
+        this.message.set(getAuthErrorMessage(error, 'Erreur lors de l’inscription.'));
       },
     });
   }
