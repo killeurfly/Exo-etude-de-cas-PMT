@@ -1,9 +1,13 @@
-import { User } from './user';
-
 export interface Project {
-  id?: number;
+  id: number;
   name: string;
   description: string;
-  startDate: string; // ISO string
-  members?: User[];
+  startDate: string;
+  createdByUserId: number;
+}
+
+export interface CreateProjectRequest {
+  name: string;
+  description: string;
+  startDate: string;
 }

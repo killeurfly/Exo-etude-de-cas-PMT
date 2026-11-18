@@ -1,6 +1,7 @@
 package com.exo_PMT.pmt_backend.repository;
 
 import com.exo_PMT.pmt_backend.entity.ProjectMember;
+import com.exo_PMT.pmt_backend.model.ProjectMemberStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,6 +11,8 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
     List<ProjectMember> findByProjectId(Long projectId);
 
     List<ProjectMember> findByUserId(Long userId);
+
+    List<ProjectMember> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, ProjectMemberStatus status);
 
     Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId);
 

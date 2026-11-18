@@ -1,22 +1,61 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private static readonly CURRENT_USER_KEY = 'pmt.currentUser';
   private readonly apiUrl = 'http://localhost:8080/api/auth';
+  private readonly currentUserState = signal<AuthResponse | null>(this.readCurrentUser());
+  readonly currentUser = this.currentUserState.asReadonly();
 
   constructor(private readonly http: HttpClient) {}
 
   login(request: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request);
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(
+      tap((user) => {
+        localStorage.setItem(AuthService.CURRENT_USER_KEY, JSON.stringify(user));
+        this.currentUserState.set(user);
+      }),
+    );
   }
 
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request);
+  }
+
+  private readCurrentUser(): AuthResponse | null {
+    const storedUser = localStorage.getItem(AuthService.CURRENT_USER_KEY);
+    if (storedUser === null) {
+      return null;
+    }
+
+    try {
+      const user: unknown = JSON.parse(storedUser);
+      if (this.isAuthResponse(user)) {
+        return user;
+      }
+    } catch {
+      localStorage.removeItem(AuthService.CURRENT_USER_KEY);
+      return null;
+    }
+
+    localStorage.removeItem(AuthService.CURRENT_USER_KEY);
+    return null;
+  }
+
+  private isAuthResponse(value: unknown): value is AuthResponse {
+    return typeof value === 'object'
+      && value !== null
+      && 'id' in value
+      && typeof value.id === 'number'
+      && 'name' in value
+      && typeof value.name === 'string'
+      && 'email' in value
+      && typeof value.email === 'string';
   }
 }
 

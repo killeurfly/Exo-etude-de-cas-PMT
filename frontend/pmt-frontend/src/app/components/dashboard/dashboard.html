@@ -1,2 +1,58 @@
 <h2>Tableau de bord</h2>
-<p>Connexion réussie. Le tableau de bord des projets sera ajouté dans une prochaine étape.</p>
+<p *ngIf="authService.currentUser() as user">Bonjour {{ user.name }}.</p>
+
+<section aria-labelledby="create-project-heading">
+  <h3 id="create-project-heading">Créer un projet</h3>
+  <form #projectForm="ngForm" (ngSubmit)="createProject()">
+    <label for="project-name">Nom du projet</label>
+    <input
+      id="project-name"
+      name="name"
+      type="text"
+      required
+      maxlength="160"
+      [(ngModel)]="form.name"
+    />
+
+    <label for="project-description">Description</label>
+    <textarea
+      id="project-description"
+      name="description"
+      required
+      [(ngModel)]="form.description"
+    ></textarea>
+
+    <label for="project-start-date">Date de début</label>
+    <input
+      id="project-start-date"
+      name="startDate"
+      type="date"
+      required
+      [(ngModel)]="form.startDate"
+    />
+
+    <button type="submit" [disabled]="projectForm.invalid || saving()">
+      {{ saving() ? 'Création en cours…' : 'Créer le projet' }}
+    </button>
+  </form>
+</section>
+
+<p *ngIf="message()" role="status">{{ message() }}</p>
+<p *ngIf="loading()">Chargement des projets…</p>
+
+<section aria-labelledby="projects-heading">
+  <h3 id="projects-heading">Mes projets</h3>
+  <p *ngIf="!loading() && projects().length === 0">Tu n’as pas encore de projet.</p>
+  <ul>
+    <li *ngFor="let project of projects()">
+      <article>
+        <h4>{{ project.name }}</h4>
+        <p>{{ project.description }}</p>
+        <p>Date de début : {{ project.startDate }}</p>
+        <p *ngIf="project.createdByUserId === authService.currentUser()?.id">
+          Créé par toi — Administrateur
+        </p>
+      </article>
+    </li>
+  </ul>
+</section>
