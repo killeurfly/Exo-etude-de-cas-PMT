@@ -4,6 +4,7 @@ import com.exo_PMT.pmt_backend.dto.CreateTaskRequest;
 import com.exo_PMT.pmt_backend.dto.TaskHistoryResponse;
 import com.exo_PMT.pmt_backend.dto.TaskResponse;
 import com.exo_PMT.pmt_backend.dto.UpdateTaskRequest;
+import com.exo_PMT.pmt_backend.entity.Project;
 import com.exo_PMT.pmt_backend.entity.Task;
 import com.exo_PMT.pmt_backend.entity.TaskAssignment;
 import com.exo_PMT.pmt_backend.entity.TaskHistory;
@@ -13,6 +14,7 @@ import com.exo_PMT.pmt_backend.model.Role;
 import com.exo_PMT.pmt_backend.model.TaskPriority;
 import com.exo_PMT.pmt_backend.model.TaskStatus;
 import com.exo_PMT.pmt_backend.repository.ProjectMemberRepository;
+import com.exo_PMT.pmt_backend.repository.ProjectRepository;
 import com.exo_PMT.pmt_backend.repository.TaskAssignmentRepository;
 import com.exo_PMT.pmt_backend.repository.TaskHistoryRepository;
 import com.exo_PMT.pmt_backend.repository.TaskRepository;
@@ -38,7 +40,9 @@ public class TaskService {
     private final TaskHistoryRepository taskHistoryRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
     private final ProjectMemberService projectMemberService;
+    private final EmailService emailService;
 
     public TaskService(
             TaskRepository taskRepository,
@@ -46,14 +50,18 @@ public class TaskService {
             TaskHistoryRepository taskHistoryRepository,
             ProjectMemberRepository projectMemberRepository,
             UserRepository userRepository,
-            ProjectMemberService projectMemberService
+            ProjectRepository projectRepository,
+            ProjectMemberService projectMemberService,
+            EmailService emailService
     ) {
         this.taskRepository = taskRepository;
         this.taskAssignmentRepository = taskAssignmentRepository;
         this.taskHistoryRepository = taskHistoryRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
+        this.projectRepository = projectRepository;
         this.projectMemberService = projectMemberService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -202,6 +210,22 @@ public class TaskService {
         assignment.setUserId(assigneeUserId);
         assignment.setAssignedByUserId(assignedByUserId);
         taskAssignmentRepository.save(assignment);
+        notifyAssignee(task, assigneeUserId, assignedByUserId);
+    }
+
+    private void notifyAssignee(Task task, Long assigneeUserId, Long assignedByUserId) {
+        User assignee = userRepository.findById(assigneeUserId).orElse(null);
+        if (assignee == null) {
+            return;
+        }
+        String assignedByName = userRepository.findById(assignedByUserId)
+                .map(User::getName)
+                .orElse("Un membre du projet");
+        String projectName = projectRepository.findById(task.getProjectId())
+                .map(Project::getName)
+                .orElse("PMT");
+
+        emailService.sendTaskAssigned(assignee.getEmail(), task.getName(), projectName, assignedByName);
     }
 
     private void requireAssignableMember(Long projectId, Long assigneeUserId) {

@@ -13,6 +13,7 @@ import com.exo_PMT.pmt_backend.repository.TaskAssignmentRepository;
 import com.exo_PMT.pmt_backend.repository.TaskHistoryRepository;
 import com.exo_PMT.pmt_backend.repository.TaskRepository;
 import com.exo_PMT.pmt_backend.repository.UserRepository;
+import com.exo_PMT.pmt_backend.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,9 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -65,6 +70,9 @@ class TaskControllerTest {
 
     @Autowired
     private TaskHistoryRepository taskHistoryRepository;
+
+    @MockitoBean
+    private EmailService emailService;
 
     private Project project;
     private User member;
@@ -247,6 +255,7 @@ class TaskControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.assigneeUserId", is(member.getId().intValue())));
         Task task = taskRepository.findByProjectId(project.getId()).get(0);
+        verify(emailService).sendTaskAssigned("member@example.test", "Préparer la démo", "PMT", "Member");
 
         mockMvc.perform(updateTask(member, task.getId(), """
                         {"name": "Préparer la démo", "description": "Slides", "priority": "LOW",
@@ -255,6 +264,7 @@ class TaskControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.assigneeUserId", is(observer.getId().intValue())));
         assertEquals(1, taskAssignmentRepository.findByTaskId(task.getId()).size());
+        verify(emailService).sendTaskAssigned("observer@example.test", "Préparer la démo", "PMT", "Member");
 
         mockMvc.perform(get(tasksUrl()).queryParam("userId", member.getId().toString()))
                 .andExpect(jsonPath("$[0].assigneeUserId", is(observer.getId().intValue())));
@@ -277,6 +287,7 @@ class TaskControllerTest {
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, taskRepository.count());
+        verify(emailService, never()).sendTaskAssigned(any(), any(), any(), any());
     }
 
     @Test
