@@ -32,3 +32,15 @@
   flex-direction: column;
   gap: 4px;
 }
+
+.task-history {
+  font-size: 0.9em;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.task-history li {
+  border-top: none;
+  padding: 2px 0;
+}

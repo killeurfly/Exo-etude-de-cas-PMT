@@ -1,6 +1,7 @@
 package com.exo_PMT.pmt_backend.controller;
 
 import com.exo_PMT.pmt_backend.dto.CreateTaskRequest;
+import com.exo_PMT.pmt_backend.dto.TaskHistoryResponse;
 import com.exo_PMT.pmt_backend.dto.TaskResponse;
 import com.exo_PMT.pmt_backend.dto.UpdateTaskRequest;
 import com.exo_PMT.pmt_backend.service.TaskService;
@@ -49,5 +50,14 @@ public class TaskController {
             @RequestBody UpdateTaskRequest request
     ) {
         return taskService.updateTask(projectId, taskId, userId, request);
+    }
+
+    @GetMapping("/{taskId}/history")
+    public List<TaskHistoryResponse> findHistory(
+            @PathVariable Long projectId,
+            @PathVariable Long taskId,
+            @RequestParam Long userId
+    ) {
+        return taskService.findHistory(projectId, taskId, userId);
     }
 }

@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateTaskRequest, Task, UpdateTaskRequest } from '../models/task';
+import { CreateTaskRequest, Task, TaskHistoryEntry, UpdateTaskRequest } from '../models/task';
 
 @Injectable({
   providedIn: 'root',
@@ -25,6 +25,12 @@ export class TaskService {
 
   updateTask(projectId: number, taskId: number, userId: number, request: UpdateTaskRequest): Observable<Task> {
     return this.http.put<Task>(`${this.tasksUrl(projectId)}/${taskId}`, request, {
+      params: new HttpParams().set('userId', userId),
+    });
+  }
+
+  getHistory(projectId: number, taskId: number, userId: number): Observable<TaskHistoryEntry[]> {
+    return this.http.get<TaskHistoryEntry[]>(`${this.tasksUrl(projectId)}/${taskId}/history`, {
       params: new HttpParams().set('userId', userId),
     });
   }

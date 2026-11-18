@@ -6,7 +6,7 @@ import { of, throwError } from 'rxjs';
 import { AuthResponse } from '../../models/auth';
 import { Project } from '../../models/project';
 import { ProjectMember } from '../../models/project-member';
-import { Task } from '../../models/task';
+import { Task, TaskHistoryEntry } from '../../models/task';
 import { AuthService } from '../../services/auth.service';
 import { ProjectMemberService } from '../../services/project-member.service';
 import { ProjectService } from '../../services/project.service';
@@ -45,7 +45,7 @@ describe('ProjectDetail', () => {
     createdByUserId: admin.id,
     assigneeUserId: null,
   };
-  const taskService = { getTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn() };
+  const taskService = { getTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn(), getHistory: vi.fn() };
 
   async function createComponent(members: ProjectMember[]): Promise<void> {
     memberService.getMembers.mockReturnValue(of(members));
@@ -64,6 +64,7 @@ describe('ProjectDetail', () => {
     taskService.getTasks.mockReset().mockReturnValue(of([existingTask]));
     taskService.createTask.mockReset();
     taskService.updateTask.mockReset();
+    taskService.getHistory.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [ProjectDetail],
@@ -285,6 +286,34 @@ describe('ProjectDetail', () => {
     expect(taskService.updateTask.mock.calls[0][3].assigneeUserId).toBe(bobMember.userId);
     expect(component.assigneeName(assigned)).toBe('Bob');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('assignée à Bob');
+  });
+
+  it('should show a readable task history to every member', async () => {
+    await createComponent([{ ...adminMember, role: 'OBSERVER' }, bobMember]);
+    const history: TaskHistoryEntry[] = [
+      {
+        id: 2, fieldName: 'assignee', oldValue: null, newValue: String(bobMember.userId),
+        changedByUserId: admin.id, changedByName: 'Admin', changedAt: '2026-11-18T14:05:00',
+      },
+      {
+        id: 1, fieldName: 'status', oldValue: 'TODO', newValue: 'IN_PROGRESS',
+        changedByUserId: admin.id, changedByName: 'Admin', changedAt: '2026-11-18T14:00:00',
+      },
+    ];
+    taskService.getHistory.mockReturnValue(of(history));
+
+    component.toggleHistory(existingTask);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(taskService.getHistory).toHaveBeenCalledWith(10, existingTask.id, admin.id);
+    const text = (fixture.nativeElement as HTMLElement).querySelector('.task-history')?.textContent ?? '';
+    expect(text).toContain('Assignée à');
+    expect(text).toContain('— → Bob');
+    expect(text).toContain('À faire → En cours');
+
+    component.toggleHistory(existingTask);
+    expect(component.historyTaskId()).toBeNull();
   });
 
   it('should not offer task editing to observers', async () => {

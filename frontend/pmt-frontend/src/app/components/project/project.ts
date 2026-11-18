@@ -6,9 +6,11 @@ import { Project } from '../../models/project';
 import { InviteMemberRequest, ProjectMember, ProjectRole, ROLE_LABELS } from '../../models/project-member';
 import {
   CreateTaskRequest,
+  HISTORY_FIELD_LABELS,
   PRIORITY_LABELS,
   STATUS_LABELS,
   Task,
+  TaskHistoryEntry,
   TaskPriority,
   TaskStatus,
   UpdateTaskRequest,
@@ -63,6 +65,10 @@ export class ProjectDetail implements OnInit {
   readonly editingTaskId = signal<number | null>(null);
   readonly savingTask = signal(false);
   editForm: UpdateTaskRequest = { ...this.emptyTaskForm(), status: 'TODO' };
+  readonly historyFieldLabels = HISTORY_FIELD_LABELS;
+  readonly historyTaskId = signal<number | null>(null);
+  readonly history = signal<TaskHistoryEntry[]>([]);
+  readonly historyMessage = signal('');
 
   private projectId = 0;
 
@@ -160,6 +166,45 @@ export class ProjectDetail implements OnInit {
         this.taskMessage.set(getTaskErrorMessage(error, 'update'));
       },
     });
+  }
+
+  toggleHistory(task: Task): void {
+    const user = this.authService.currentUser();
+    if (user === null) {
+      return;
+    }
+    if (this.historyTaskId() === task.id) {
+      this.historyTaskId.set(null);
+      return;
+    }
+
+    this.historyTaskId.set(task.id);
+    this.history.set([]);
+    this.historyMessage.set('');
+    this.taskService.getHistory(this.projectId, task.id, user.id).subscribe({
+      next: (history) => this.history.set(history),
+      error: (error: unknown) => {
+        this.historyMessage.set(getProjectErrorMessage(error, 'Impossible de charger l’historique.'));
+      },
+    });
+  }
+
+  // Les valeurs sont stockées brutes (codes, identifiants) : on les traduit pour l'affichage.
+  historyValue(entry: TaskHistoryEntry, value: string | null): string {
+    if (value === null || value === '') {
+      return '—';
+    }
+    if (entry.fieldName === 'priority') {
+      return this.priorityLabels[value as TaskPriority] ?? value;
+    }
+    if (entry.fieldName === 'status') {
+      return this.statusLabels[value as TaskStatus] ?? value;
+    }
+    if (entry.fieldName === 'assignee') {
+      const member = this.members().find((m) => m.userId === Number(value));
+      return member?.name ?? member?.email ?? 'ancien membre';
+    }
+    return value;
   }
 
   invite(): void {

@@ -10,6 +10,7 @@ import com.exo_PMT.pmt_backend.model.TaskStatus;
 import com.exo_PMT.pmt_backend.repository.ProjectMemberRepository;
 import com.exo_PMT.pmt_backend.repository.ProjectRepository;
 import com.exo_PMT.pmt_backend.repository.TaskAssignmentRepository;
+import com.exo_PMT.pmt_backend.repository.TaskHistoryRepository;
 import com.exo_PMT.pmt_backend.repository.TaskRepository;
 import com.exo_PMT.pmt_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,8 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -59,12 +63,16 @@ class TaskControllerTest {
     @Autowired
     private TaskAssignmentRepository taskAssignmentRepository;
 
+    @Autowired
+    private TaskHistoryRepository taskHistoryRepository;
+
     private Project project;
     private User member;
     private User observer;
 
     @BeforeEach
     void createProjectWithMembers() {
+        taskHistoryRepository.deleteAll();
         taskAssignmentRepository.deleteAll();
         taskRepository.deleteAll();
         projectMemberRepository.deleteAll();
@@ -269,6 +277,45 @@ class TaskControllerTest {
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, taskRepository.count());
+    }
+
+    @Test
+    void updateRecordsOneHistoryEntryPerChangedField() throws Exception {
+        Task task = saveTask("Rédiger la doc");
+
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Rédiger la doc", "description": "Description", "priority": "HIGH",
+                         "status": "IN_PROGRESS", "assigneeUserId": %d}
+                        """.formatted(member.getId())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(tasksUrl() + "/" + task.getId() + "/history")
+                        .queryParam("userId", observer.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(3)))
+                .andExpect(jsonPath("$[*].fieldName", containsInAnyOrder("priority", "status", "assignee")))
+                .andExpect(jsonPath("$[?(@.fieldName == 'status')].oldValue", contains("TODO")))
+                .andExpect(jsonPath("$[?(@.fieldName == 'status')].newValue", contains("IN_PROGRESS")))
+                .andExpect(jsonPath("$[?(@.fieldName == 'assignee')].oldValue", contains(nullValue())))
+                .andExpect(jsonPath("$[0].changedByName", is("Member")));
+
+        // Enregistrer sans rien changer n'ajoute aucune ligne.
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Rédiger la doc", "description": "Description", "priority": "HIGH",
+                         "status": "IN_PROGRESS", "assigneeUserId": %d}
+                        """.formatted(member.getId())))
+                .andExpect(status().isOk());
+        assertEquals(3, taskHistoryRepository.count());
+    }
+
+    @Test
+    void outsiderCannotReadHistory() throws Exception {
+        Task task = saveTask("Tâche");
+        User outsider = createUser("Outsider", "outsider@example.test");
+
+        mockMvc.perform(get(tasksUrl() + "/" + task.getId() + "/history")
+                        .queryParam("userId", outsider.getId().toString()))
+                .andExpect(status().isForbidden());
     }
 
     private Task saveTask(String name) {

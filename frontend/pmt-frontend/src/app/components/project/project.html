@@ -112,7 +112,29 @@
                 @if (canEditTasks()) {
                   <button type="button" (click)="startEdit(task)">Modifier</button>
                 }
+                <button type="button" (click)="toggleHistory(task)">
+                  {{ historyTaskId() === task.id ? 'Masquer l’historique' : 'Historique' }}
+                </button>
                 <p>{{ task.description }}</p>
+                @if (historyTaskId() === task.id) {
+                  <div class="task-history">
+                    @if (historyMessage()) {
+                      <p role="status">{{ historyMessage() }}</p>
+                    }
+                    <ul>
+                      @for (entry of history(); track entry.id) {
+                        <li>
+                          {{ entry.changedAt | date: 'dd/MM/yyyy HH:mm' }}
+                          — {{ entry.changedByName ?? 'Utilisateur supprimé' }} :
+                          {{ historyFieldLabels[entry.fieldName] ?? entry.fieldName }}
+                          {{ historyValue(entry, entry.oldValue) }} → {{ historyValue(entry, entry.newValue) }}
+                        </li>
+                      } @empty {
+                        <li>Aucune modification enregistrée.</li>
+                      }
+                    </ul>
+                  </div>
+                }
               }
             </li>
           } @empty {

@@ -27,6 +27,25 @@ export interface UpdateTaskRequest extends CreateTaskRequest {
   status: TaskStatus;
 }
 
+export interface TaskHistoryEntry {
+  id: number;
+  fieldName: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changedByUserId: number | null;
+  changedByName: string | null;
+  changedAt: string;
+}
+
+export const HISTORY_FIELD_LABELS: Partial<Record<string, string>> = {
+  name: 'Nom',
+  description: 'Description',
+  dueDate: 'Échéance',
+  priority: 'Priorité',
+  status: 'Statut',
+  assignee: 'Assignée à',
+};
+
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
   LOW: 'Basse',
   MEDIUM: 'Moyenne',
