@@ -47,6 +47,12 @@ export class ProjectDetail implements OnInit {
   readonly priorityLabels = PRIORITY_LABELS;
   readonly statusLabels = STATUS_LABELS;
   readonly tasks = signal<Task[]>([]);
+  readonly tasksByStatus = computed(() =>
+    this.statuses.map((status) => ({
+      status,
+      tasks: this.tasks().filter((task) => task.status === status),
+    })),
+  );
   readonly taskMessage = signal('');
   readonly creatingTask = signal(false);
   readonly canEditTasks = computed(() => this.currentRole() === 'ADMIN' || this.currentRole() === 'MEMBER');

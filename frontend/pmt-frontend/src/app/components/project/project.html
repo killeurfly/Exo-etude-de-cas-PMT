@@ -52,70 +52,76 @@
     <p role="status">{{ taskMessage() }}</p>
   }
 
-  <ul>
-    @for (task of tasks(); track task.id) {
-      <li>
-        @if (editingTaskId() === task.id) {
-          <form #editFormRef="ngForm" (ngSubmit)="saveTask()">
-            <label for="edit-name">Nom de la tâche</label>
-            <input id="edit-name" name="name" type="text" required maxlength="180" [(ngModel)]="editForm.name" />
+  <div class="task-board">
+    @for (column of tasksByStatus(); track column.status) {
+      <section class="task-column" [attr.aria-labelledby]="'column-' + column.status">
+        <h4 [id]="'column-' + column.status">{{ statusLabels[column.status] }} ({{ column.tasks.length }})</h4>
+        <ul>
+          @for (task of column.tasks; track task.id) {
+            <li>
+              @if (editingTaskId() === task.id) {
+                <form #editFormRef="ngForm" (ngSubmit)="saveTask()">
+                  <label for="edit-name">Nom de la tâche</label>
+                  <input id="edit-name" name="name" type="text" required maxlength="180" [(ngModel)]="editForm.name" />
 
-            <label for="edit-description">Description</label>
-            <textarea id="edit-description" name="description" required [(ngModel)]="editForm.description"></textarea>
+                  <label for="edit-description">Description</label>
+                  <textarea id="edit-description" name="description" required [(ngModel)]="editForm.description"></textarea>
 
-            <label for="edit-due-date">Échéance (facultative)</label>
-            <input id="edit-due-date" name="dueDate" type="date" [(ngModel)]="editForm.dueDate" />
+                  <label for="edit-due-date">Échéance (facultative)</label>
+                  <input id="edit-due-date" name="dueDate" type="date" [(ngModel)]="editForm.dueDate" />
 
-            <label for="edit-priority">Priorité</label>
-            <select id="edit-priority" name="priority" [(ngModel)]="editForm.priority">
-              @for (priority of priorities; track priority) {
-                <option [value]="priority">{{ priorityLabels[priority] }}</option>
+                  <label for="edit-priority">Priorité</label>
+                  <select id="edit-priority" name="priority" [(ngModel)]="editForm.priority">
+                    @for (priority of priorities; track priority) {
+                      <option [value]="priority">{{ priorityLabels[priority] }}</option>
+                    }
+                  </select>
+
+                  <label for="edit-status">Statut</label>
+                  <select id="edit-status" name="status" [(ngModel)]="editForm.status">
+                    @for (status of statuses; track status) {
+                      <option [value]="status">{{ statusLabels[status] }}</option>
+                    }
+                  </select>
+
+                  <label for="edit-assignee">Assignée à</label>
+                  <select id="edit-assignee" name="assigneeUserId" [(ngModel)]="editForm.assigneeUserId">
+                    <option [ngValue]="null">Personne</option>
+                    @for (member of assignableMembers(); track member.id) {
+                      <option [ngValue]="member.userId">{{ member.name ?? member.email }}</option>
+                    }
+                  </select>
+
+                  <button type="submit" [disabled]="editFormRef.invalid || savingTask()">
+                    {{ savingTask() ? 'Enregistrement…' : 'Enregistrer' }}
+                  </button>
+                  <button type="button" (click)="cancelEdit()">Annuler</button>
+                </form>
+              } @else {
+                <strong>{{ task.name }}</strong>
+                — priorité {{ priorityLabels[task.priority] }}
+                @if (task.dueDate) {
+                  — échéance {{ task.dueDate }}
+                }
+                @if (assigneeName(task); as assignee) {
+                  — assignée à {{ assignee }}
+                }
+                @if (task.completedAt) {
+                  — terminée le {{ task.completedAt | date: 'dd/MM/yyyy à HH:mm' }}
+                }
+                @if (canEditTasks()) {
+                  <button type="button" (click)="startEdit(task)">Modifier</button>
+                }
+                <p>{{ task.description }}</p>
               }
-            </select>
-
-            <label for="edit-status">Statut</label>
-            <select id="edit-status" name="status" [(ngModel)]="editForm.status">
-              @for (status of statuses; track status) {
-                <option [value]="status">{{ statusLabels[status] }}</option>
-              }
-            </select>
-
-            <label for="edit-assignee">Assignée à</label>
-            <select id="edit-assignee" name="assigneeUserId" [(ngModel)]="editForm.assigneeUserId">
-              <option [ngValue]="null">Personne</option>
-              @for (member of assignableMembers(); track member.id) {
-                <option [ngValue]="member.userId">{{ member.name ?? member.email }}</option>
-              }
-            </select>
-
-            <button type="submit" [disabled]="editFormRef.invalid || savingTask()">
-              {{ savingTask() ? 'Enregistrement…' : 'Enregistrer' }}
-            </button>
-            <button type="button" (click)="cancelEdit()">Annuler</button>
-          </form>
-        } @else {
-          <strong>{{ task.name }}</strong>
-          — {{ statusLabels[task.status] }}
-          — priorité {{ priorityLabels[task.priority] }}
-          @if (task.dueDate) {
-            — échéance {{ task.dueDate }}
+            </li>
+          } @empty {
+            <li>Aucune tâche.</li>
           }
-          @if (assigneeName(task); as assignee) {
-            — assignée à {{ assignee }}
-          }
-          @if (task.completedAt) {
-            — terminée le {{ task.completedAt | date: 'dd/MM/yyyy à HH:mm' }}
-          }
-          @if (canEditTasks()) {
-            <button type="button" (click)="startEdit(task)">Modifier</button>
-          }
-          <p>{{ task.description }}</p>
-        }
-      </li>
-    } @empty {
-      <li>Aucune tâche pour l’instant.</li>
+        </ul>
+      </section>
     }
-  </ul>
+  </div>
 </section>
 
 @if (isAdmin()) {

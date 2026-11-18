@@ -147,6 +147,22 @@ describe('ProjectDetail', () => {
     expect(text).toContain('Haute');
   });
 
+  it('should group tasks by status with a count per column', async () => {
+    const todo: Task = { ...existingTask, id: 51, name: 'À démarrer', status: 'TODO' };
+    const done: Task = { ...existingTask, id: 52, name: 'Livrée', status: 'DONE' };
+    taskService.getTasks.mockReturnValue(of([todo, existingTask, done]));
+    await createComponent([adminMember]);
+
+    expect(component.tasksByStatus().map((column) => column.tasks.map((task) => task.id))).toEqual([
+      [51], [50], [52],
+    ]);
+    const columns = (fixture.nativeElement as HTMLElement).querySelectorAll('.task-column');
+    expect(columns.length).toBe(3);
+    expect(columns[0].textContent).toContain('À faire (1)');
+    expect(columns[1].textContent).toContain('Concevoir le modèle');
+    expect(columns[2].textContent).toContain('Livrée');
+  });
+
   it('should let members create tasks but hide the form from observers', async () => {
     await createComponent([{ ...adminMember, role: 'MEMBER' }]);
     expect(component.canEditTasks()).toBe(true);
