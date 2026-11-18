@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -9,6 +10,8 @@ import {
   STATUS_LABELS,
   Task,
   TaskPriority,
+  TaskStatus,
+  UpdateTaskRequest,
 } from '../../models/task';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -21,7 +24,7 @@ import { getTaskErrorMessage, TaskService } from '../../services/task.service';
 
 @Component({
   selector: 'app-project',
-  imports: [FormsModule, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink],
   templateUrl: './project.html',
   styleUrl: './project.css',
 })
@@ -40,13 +43,17 @@ export class ProjectDetail implements OnInit {
   inviteForm: InviteMemberRequest = { email: '', role: 'MEMBER' };
 
   readonly priorities: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH'];
+  readonly statuses: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
   readonly priorityLabels = PRIORITY_LABELS;
   readonly statusLabels = STATUS_LABELS;
   readonly tasks = signal<Task[]>([]);
   readonly taskMessage = signal('');
   readonly creatingTask = signal(false);
-  readonly canCreateTask = computed(() => this.currentRole() === 'ADMIN' || this.currentRole() === 'MEMBER');
+  readonly canEditTasks = computed(() => this.currentRole() === 'ADMIN' || this.currentRole() === 'MEMBER');
   taskForm: CreateTaskRequest = this.emptyTaskForm();
+  readonly editingTaskId = signal<number | null>(null);
+  readonly savingTask = signal(false);
+  editForm: UpdateTaskRequest = { ...this.emptyTaskForm(), status: 'TODO' };
 
   private projectId = 0;
 
@@ -101,6 +108,46 @@ export class ProjectDetail implements OnInit {
       error: (error: unknown) => {
         this.creatingTask.set(false);
         this.taskMessage.set(getTaskErrorMessage(error));
+      },
+    });
+  }
+
+  startEdit(task: Task): void {
+    this.taskMessage.set('');
+    this.editForm = {
+      name: task.name,
+      description: task.description,
+      dueDate: task.dueDate,
+      priority: task.priority,
+      status: task.status,
+    };
+    this.editingTaskId.set(task.id);
+  }
+
+  cancelEdit(): void {
+    this.editingTaskId.set(null);
+  }
+
+  saveTask(): void {
+    const user = this.authService.currentUser();
+    const taskId = this.editingTaskId();
+    if (user === null || taskId === null) {
+      return;
+    }
+
+    this.taskMessage.set('');
+    this.savingTask.set(true);
+    const request = { ...this.editForm, dueDate: this.editForm.dueDate || null };
+    this.taskService.updateTask(this.projectId, taskId, user.id, request).subscribe({
+      next: (updated) => {
+        this.tasks.update((tasks) => tasks.map((task) => (task.id === updated.id ? updated : task)));
+        this.editingTaskId.set(null);
+        this.savingTask.set(false);
+        this.taskMessage.set(`Tâche « ${updated.name} » modifiée.`);
+      },
+      error: (error: unknown) => {
+        this.savingTask.set(false);
+        this.taskMessage.set(getTaskErrorMessage(error, 'update'));
       },
     });
   }

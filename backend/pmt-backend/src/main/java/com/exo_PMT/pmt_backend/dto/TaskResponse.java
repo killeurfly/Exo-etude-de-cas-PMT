@@ -5,6 +5,7 @@ import com.exo_PMT.pmt_backend.model.TaskPriority;
 import com.exo_PMT.pmt_backend.model.TaskStatus;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record TaskResponse(
         Long id,
@@ -14,6 +15,7 @@ public record TaskResponse(
         LocalDate dueDate,
         TaskPriority priority,
         TaskStatus status,
+        LocalDateTime completedAt,
         Long createdByUserId
 ) {
     public static TaskResponse from(Task task) {
@@ -25,6 +27,7 @@ public record TaskResponse(
                 task.getDueDate(),
                 task.getPriority(),
                 task.getStatus(),
+                task.getCompletedAt(),
                 task.getCreatedByUserId()
         );
     }

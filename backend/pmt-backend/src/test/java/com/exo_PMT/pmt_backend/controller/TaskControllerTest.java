@@ -2,9 +2,11 @@ package com.exo_PMT.pmt_backend.controller;
 
 import com.exo_PMT.pmt_backend.entity.Project;
 import com.exo_PMT.pmt_backend.entity.ProjectMember;
+import com.exo_PMT.pmt_backend.entity.Task;
 import com.exo_PMT.pmt_backend.entity.User;
 import com.exo_PMT.pmt_backend.model.ProjectMemberStatus;
 import com.exo_PMT.pmt_backend.model.Role;
+import com.exo_PMT.pmt_backend.model.TaskStatus;
 import com.exo_PMT.pmt_backend.repository.ProjectMemberRepository;
 import com.exo_PMT.pmt_backend.repository.ProjectRepository;
 import com.exo_PMT.pmt_backend.repository.TaskRepository;
@@ -21,11 +23,15 @@ import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -140,6 +146,99 @@ class TaskControllerTest {
                         {"name": "Intrus", "description": "Pas membre du projet"}
                         """))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void memberUpdatesTaskAndCompletionDateFollowsStatus() throws Exception {
+        Task task = saveTask("Rédiger la doc");
+
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {
+                          "name": "Rédiger la documentation",
+                          "description": "Guide de déploiement",
+                          "dueDate": "2026-12-15",
+                          "priority": "HIGH",
+                          "status": "DONE"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is("Rédiger la documentation")))
+                .andExpect(jsonPath("$.dueDate", is("2026-12-15")))
+                .andExpect(jsonPath("$.priority", is("HIGH")))
+                .andExpect(jsonPath("$.status", is("DONE")))
+                .andExpect(jsonPath("$.completedAt", notNullValue()));
+
+        LocalDateTime completedAt = taskRepository.findById(task.getId()).orElseThrow().getCompletedAt();
+        assertNotNull(completedAt);
+
+        // Modifier une tâche déjà terminée conserve sa date de fin d'origine.
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Doc finale", "description": "Guide", "priority": "HIGH", "status": "DONE"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dueDate").doesNotExist());
+        assertEquals(completedAt, taskRepository.findById(task.getId()).orElseThrow().getCompletedAt());
+
+        // La rouvrir efface la date de fin.
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Doc finale", "description": "Guide", "priority": "HIGH", "status": "IN_PROGRESS"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedAt").doesNotExist());
+    }
+
+    @Test
+    void observerCannotUpdateTask() throws Exception {
+        Task task = saveTask("Intouchable");
+
+        mockMvc.perform(updateTask(observer, task.getId(), """
+                        {"name": "Modifiée", "description": "Non", "priority": "LOW", "status": "DONE"}
+                        """))
+                .andExpect(status().isForbidden());
+
+        Task unchanged = taskRepository.findById(task.getId()).orElseThrow();
+        assertEquals("Intouchable", unchanged.getName());
+        assertEquals(TaskStatus.TODO, unchanged.getStatus());
+    }
+
+    @Test
+    void updateRejectsTaskFromAnotherProjectAndMissingFields() throws Exception {
+        Task task = saveTask("Tâche");
+        Project otherProject = new Project();
+        otherProject.setName("Autre");
+        otherProject.setDescription("Autre projet");
+        otherProject.setStartDate(LocalDate.of(2026, 11, 18));
+        otherProject.setCreatedByUserId(member.getId());
+        otherProject = projectRepository.save(otherProject);
+        Task foreignTask = new Task();
+        foreignTask.setProjectId(otherProject.getId());
+        foreignTask.setName("Ailleurs");
+        foreignTask.setDescription("Tâche d'un autre projet");
+        foreignTask = taskRepository.save(foreignTask);
+
+        mockMvc.perform(updateTask(member, foreignTask.getId(), """
+                        {"name": "Piratée", "description": "Non", "priority": "LOW", "status": "TODO"}
+                        """))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Sans statut", "description": "Incomplète", "priority": "LOW"}
+                        """))
+                .andExpect(status().isBadRequest());
+    }
+
+    private Task saveTask(String name) {
+        Task task = new Task();
+        task.setProjectId(project.getId());
+        task.setName(name);
+        task.setDescription("Description");
+        return taskRepository.save(task);
+    }
+
+    private RequestBuilder updateTask(User user, Long taskId, String json) {
+        return put(tasksUrl() + "/" + taskId)
+                .queryParam("userId", user.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json);
     }
 
     private String tasksUrl() {

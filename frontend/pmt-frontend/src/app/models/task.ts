@@ -10,6 +10,7 @@ export interface Task {
   dueDate: string | null;
   priority: TaskPriority;
   status: TaskStatus;
+  completedAt: string | null;
   createdByUserId: number | null;
 }
 
@@ -18,6 +19,10 @@ export interface CreateTaskRequest {
   description: string;
   dueDate: string | null;
   priority: TaskPriority;
+}
+
+export interface UpdateTaskRequest extends CreateTaskRequest {
+  status: TaskStatus;
 }
 
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {

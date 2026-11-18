@@ -41,9 +41,10 @@ describe('ProjectDetail', () => {
     dueDate: '2026-11-25',
     priority: 'HIGH',
     status: 'IN_PROGRESS',
+    completedAt: null,
     createdByUserId: admin.id,
   };
-  const taskService = { getTasks: vi.fn(), createTask: vi.fn() };
+  const taskService = { getTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn() };
 
   async function createComponent(members: ProjectMember[]): Promise<void> {
     memberService.getMembers.mockReturnValue(of(members));
@@ -61,6 +62,7 @@ describe('ProjectDetail', () => {
     memberService.updateRole.mockReset();
     taskService.getTasks.mockReset().mockReturnValue(of([existingTask]));
     taskService.createTask.mockReset();
+    taskService.updateTask.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [ProjectDetail],
@@ -146,11 +148,11 @@ describe('ProjectDetail', () => {
 
   it('should let members create tasks but hide the form from observers', async () => {
     await createComponent([{ ...adminMember, role: 'MEMBER' }]);
-    expect(component.canCreateTask()).toBe(true);
+    expect(component.canEditTasks()).toBe(true);
     expect((fixture.nativeElement as HTMLElement).querySelector('#task-name')).not.toBeNull();
 
     await createComponent([{ ...adminMember, role: 'OBSERVER' }]);
-    expect(component.canCreateTask()).toBe(false);
+    expect(component.canEditTasks()).toBe(false);
     expect((fixture.nativeElement as HTMLElement).querySelector('#task-name')).toBeNull();
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Concevoir le modèle');
   });
@@ -186,6 +188,67 @@ describe('ProjectDetail', () => {
     expect(component.taskMessage()).toBe('Ton rôle ne permet pas de créer une tâche dans ce projet.');
     expect(component.creatingTask()).toBe(false);
     expect(component.tasks()).toEqual([existingTask]);
+  });
+
+  it('should prefill the edit form with the selected task', async () => {
+    await createComponent([adminMember]);
+
+    component.startEdit(existingTask);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.editingTaskId()).toBe(existingTask.id);
+    expect(component.editForm).toEqual({
+      name: 'Concevoir le modèle',
+      description: 'Définir les entités',
+      dueDate: '2026-11-25',
+      priority: 'HIGH',
+      status: 'IN_PROGRESS',
+    });
+    expect((fixture.nativeElement as HTMLElement).querySelector('#edit-status')).not.toBeNull();
+  });
+
+  it('should save a finished task and show its completion date', async () => {
+    await createComponent([adminMember]);
+    const finished: Task = { ...existingTask, status: 'DONE', completedAt: '2026-11-18T12:45:00' };
+    taskService.updateTask.mockReturnValue(of(finished));
+    component.startEdit(existingTask);
+    component.editForm.status = 'DONE';
+    component.editForm.dueDate = '';
+
+    component.saveTask();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(taskService.updateTask).toHaveBeenCalledWith(10, existingTask.id, admin.id, {
+      name: 'Concevoir le modèle',
+      description: 'Définir les entités',
+      dueDate: null,
+      priority: 'HIGH',
+      status: 'DONE',
+    });
+    expect(component.tasks()).toEqual([finished]);
+    expect(component.editingTaskId()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('terminée le 18/11/2026 à 12:45');
+  });
+
+  it('should keep the form open when the update is refused', async () => {
+    await createComponent([adminMember]);
+    taskService.updateTask.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+    component.startEdit(existingTask);
+
+    component.saveTask();
+
+    expect(component.taskMessage()).toBe('Ton rôle ne permet pas de modifier une tâche dans ce projet.');
+    expect(component.editingTaskId()).toBe(existingTask.id);
+    expect(component.tasks()).toEqual([existingTask]);
+  });
+
+  it('should not offer task editing to observers', async () => {
+    await createComponent([{ ...adminMember, role: 'OBSERVER' }]);
+
+    const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'));
+    expect(buttons.some((button) => button.textContent?.includes('Modifier'))).toBe(false);
   });
 
   it('should keep the last administrator', async () => {
