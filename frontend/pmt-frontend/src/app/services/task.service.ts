@@ -38,7 +38,7 @@ export function getTaskErrorMessage(error: unknown, action: 'create' | 'update' 
   const verb = action === 'create' ? 'créer' : 'modifier';
   if (error instanceof HttpErrorResponse) {
     if (error.status === 400) {
-      return 'Le nom et la description de la tâche sont obligatoires.';
+      return 'Le nom et la description sont obligatoires, et la tâche ne peut être assignée qu’à un membre du projet.';
     }
     if (error.status === 403) {
       return `Ton rôle ne permet pas de ${verb} une tâche dans ce projet.`;

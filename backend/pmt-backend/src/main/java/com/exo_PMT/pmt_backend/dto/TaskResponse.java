@@ -16,9 +16,10 @@ public record TaskResponse(
         TaskPriority priority,
         TaskStatus status,
         LocalDateTime completedAt,
-        Long createdByUserId
+        Long createdByUserId,
+        Long assigneeUserId
 ) {
-    public static TaskResponse from(Task task) {
+    public static TaskResponse from(Task task, Long assigneeUserId) {
         return new TaskResponse(
                 task.getId(),
                 task.getProjectId(),
@@ -28,7 +29,8 @@ public record TaskResponse(
                 task.getPriority(),
                 task.getStatus(),
                 task.getCompletedAt(),
-                task.getCreatedByUserId()
+                task.getCreatedByUserId(),
+                assigneeUserId
         );
     }
 }

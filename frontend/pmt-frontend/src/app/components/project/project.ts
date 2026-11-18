@@ -50,6 +50,9 @@ export class ProjectDetail implements OnInit {
   readonly taskMessage = signal('');
   readonly creatingTask = signal(false);
   readonly canEditTasks = computed(() => this.currentRole() === 'ADMIN' || this.currentRole() === 'MEMBER');
+  readonly assignableMembers = computed(() =>
+    this.members().filter((member) => member.status === 'ACTIVE' && member.userId !== null),
+  );
   taskForm: CreateTaskRequest = this.emptyTaskForm();
   readonly editingTaskId = signal<number | null>(null);
   readonly savingTask = signal(false);
@@ -120,6 +123,7 @@ export class ProjectDetail implements OnInit {
       dueDate: task.dueDate,
       priority: task.priority,
       status: task.status,
+      assigneeUserId: task.assigneeUserId,
     };
     this.editingTaskId.set(task.id);
   }
@@ -196,8 +200,16 @@ export class ProjectDetail implements OnInit {
     });
   }
 
+  assigneeName(task: Task): string | null {
+    if (task.assigneeUserId === null) {
+      return null;
+    }
+    const member = this.members().find((m) => m.userId === task.assigneeUserId);
+    return member?.name ?? member?.email ?? null;
+  }
+
   private emptyTaskForm(): CreateTaskRequest {
-    return { name: '', description: '', dueDate: null, priority: 'MEDIUM' };
+    return { name: '', description: '', dueDate: null, priority: 'MEDIUM', assigneeUserId: null };
   }
 
   private loadMembers(userId: number): void {

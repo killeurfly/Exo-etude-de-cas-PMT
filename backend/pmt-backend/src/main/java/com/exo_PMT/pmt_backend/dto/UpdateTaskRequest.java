@@ -10,5 +10,6 @@ public record UpdateTaskRequest(
         String description,
         LocalDate dueDate,
         TaskPriority priority,
-        TaskStatus status
+        TaskStatus status,
+        Long assigneeUserId
 ) {}

@@ -9,6 +9,7 @@ import com.exo_PMT.pmt_backend.model.Role;
 import com.exo_PMT.pmt_backend.model.TaskStatus;
 import com.exo_PMT.pmt_backend.repository.ProjectMemberRepository;
 import com.exo_PMT.pmt_backend.repository.ProjectRepository;
+import com.exo_PMT.pmt_backend.repository.TaskAssignmentRepository;
 import com.exo_PMT.pmt_backend.repository.TaskRepository;
 import com.exo_PMT.pmt_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,12 +56,16 @@ class TaskControllerTest {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private TaskAssignmentRepository taskAssignmentRepository;
+
     private Project project;
     private User member;
     private User observer;
 
     @BeforeEach
     void createProjectWithMembers() {
+        taskAssignmentRepository.deleteAll();
         taskRepository.deleteAll();
         projectMemberRepository.deleteAll();
         projectRepository.deleteAll();
@@ -224,6 +229,46 @@ class TaskControllerTest {
                         {"name": "Sans statut", "description": "Incomplète", "priority": "LOW"}
                         """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void taskCanBeAssignedReassignedAndUnassigned() throws Exception {
+        mockMvc.perform(createTask(member, """
+                        {"name": "Préparer la démo", "description": "Slides", "assigneeUserId": %d}
+                        """.formatted(member.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.assigneeUserId", is(member.getId().intValue())));
+        Task task = taskRepository.findByProjectId(project.getId()).get(0);
+
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Préparer la démo", "description": "Slides", "priority": "LOW",
+                         "status": "TODO", "assigneeUserId": %d}
+                        """.formatted(observer.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assigneeUserId", is(observer.getId().intValue())));
+        assertEquals(1, taskAssignmentRepository.findByTaskId(task.getId()).size());
+
+        mockMvc.perform(get(tasksUrl()).queryParam("userId", member.getId().toString()))
+                .andExpect(jsonPath("$[0].assigneeUserId", is(observer.getId().intValue())));
+
+        mockMvc.perform(updateTask(member, task.getId(), """
+                        {"name": "Préparer la démo", "description": "Slides", "priority": "LOW", "status": "TODO"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assigneeUserId").doesNotExist());
+        assertEquals(0, taskAssignmentRepository.findByTaskId(task.getId()).size());
+    }
+
+    @Test
+    void taskCannotBeAssignedToSomeoneOutsideTheProject() throws Exception {
+        User outsider = createUser("Outsider", "outsider@example.test");
+
+        mockMvc.perform(createTask(member, """
+                        {"name": "Intrus", "description": "Assignation refusée", "assigneeUserId": %d}
+                        """.formatted(outsider.getId())))
+                .andExpect(status().isBadRequest());
+
+        assertEquals(0, taskRepository.count());
     }
 
     private Task saveTask(String name) {

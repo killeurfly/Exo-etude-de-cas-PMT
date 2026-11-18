@@ -12,6 +12,7 @@ export interface Task {
   status: TaskStatus;
   completedAt: string | null;
   createdByUserId: number | null;
+  assigneeUserId: number | null;
 }
 
 export interface CreateTaskRequest {
@@ -19,6 +20,7 @@ export interface CreateTaskRequest {
   description: string;
   dueDate: string | null;
   priority: TaskPriority;
+  assigneeUserId: number | null;
 }
 
 export interface UpdateTaskRequest extends CreateTaskRequest {

@@ -43,6 +43,7 @@ describe('ProjectDetail', () => {
     status: 'IN_PROGRESS',
     completedAt: null,
     createdByUserId: admin.id,
+    assigneeUserId: null,
   };
   const taskService = { getTasks: vi.fn(), createTask: vi.fn(), updateTask: vi.fn() };
 
@@ -164,7 +165,9 @@ describe('ProjectDetail', () => {
     };
     taskService.createTask.mockReturnValue(of(created));
     // Un champ date vidé dans le navigateur vaut ''.
-    component.taskForm = { name: 'Nouvelle tâche', description: 'Test', dueDate: '', priority: 'LOW' };
+    component.taskForm = {
+      name: 'Nouvelle tâche', description: 'Test', dueDate: '', priority: 'LOW', assigneeUserId: null,
+    };
 
     component.createTask();
 
@@ -173,6 +176,7 @@ describe('ProjectDetail', () => {
       description: 'Test',
       dueDate: null,
       priority: 'LOW',
+      assigneeUserId: null,
     });
     expect(component.tasks()).toEqual([created, existingTask]);
     expect(component.taskForm.name).toBe('');
@@ -204,6 +208,7 @@ describe('ProjectDetail', () => {
       dueDate: '2026-11-25',
       priority: 'HIGH',
       status: 'IN_PROGRESS',
+      assigneeUserId: null,
     });
     expect((fixture.nativeElement as HTMLElement).querySelector('#edit-status')).not.toBeNull();
   });
@@ -226,6 +231,7 @@ describe('ProjectDetail', () => {
       dueDate: null,
       priority: 'HIGH',
       status: 'DONE',
+      assigneeUserId: null,
     });
     expect(component.tasks()).toEqual([finished]);
     expect(component.editingTaskId()).toBeNull();
@@ -242,6 +248,27 @@ describe('ProjectDetail', () => {
     expect(component.taskMessage()).toBe('Ton rôle ne permet pas de modifier une tâche dans ce projet.');
     expect(component.editingTaskId()).toBe(existingTask.id);
     expect(component.tasks()).toEqual([existingTask]);
+  });
+
+  it('should assign a task to an active member and show their name', async () => {
+    const invited: ProjectMember = {
+      id: 102, userId: null, name: null, email: 'carol@example.test', role: 'MEMBER', status: 'INVITED',
+    };
+    await createComponent([adminMember, bobMember, invited]);
+    expect(component.assignableMembers()).toEqual([adminMember, bobMember]);
+
+    const assigned: Task = { ...existingTask, assigneeUserId: bobMember.userId };
+    taskService.updateTask.mockReturnValue(of(assigned));
+    component.startEdit(existingTask);
+    component.editForm.assigneeUserId = bobMember.userId;
+
+    component.saveTask();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(taskService.updateTask.mock.calls[0][3].assigneeUserId).toBe(bobMember.userId);
+    expect(component.assigneeName(assigned)).toBe('Bob');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('assignée à Bob');
   });
 
   it('should not offer task editing to observers', async () => {

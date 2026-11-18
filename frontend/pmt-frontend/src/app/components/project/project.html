@@ -34,6 +34,14 @@
         }
       </select>
 
+      <label for="task-assignee">Assignée à</label>
+      <select id="task-assignee" name="assigneeUserId" [(ngModel)]="taskForm.assigneeUserId">
+        <option [ngValue]="null">Personne</option>
+        @for (member of assignableMembers(); track member.id) {
+          <option [ngValue]="member.userId">{{ member.name ?? member.email }}</option>
+        }
+      </select>
+
       <button type="submit" [disabled]="taskFormRef.invalid || creatingTask()">
         {{ creatingTask() ? 'Création en cours…' : 'Créer la tâche' }}
       </button>
@@ -72,6 +80,14 @@
               }
             </select>
 
+            <label for="edit-assignee">Assignée à</label>
+            <select id="edit-assignee" name="assigneeUserId" [(ngModel)]="editForm.assigneeUserId">
+              <option [ngValue]="null">Personne</option>
+              @for (member of assignableMembers(); track member.id) {
+                <option [ngValue]="member.userId">{{ member.name ?? member.email }}</option>
+              }
+            </select>
+
             <button type="submit" [disabled]="editFormRef.invalid || savingTask()">
               {{ savingTask() ? 'Enregistrement…' : 'Enregistrer' }}
             </button>
@@ -83,6 +99,9 @@
           — priorité {{ priorityLabels[task.priority] }}
           @if (task.dueDate) {
             — échéance {{ task.dueDate }}
+          }
+          @if (assigneeName(task); as assignee) {
+            — assignée à {{ assignee }}
           }
           @if (task.completedAt) {
             — terminée le {{ task.completedAt | date: 'dd/MM/yyyy à HH:mm' }}
