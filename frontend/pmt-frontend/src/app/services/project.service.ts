@@ -17,6 +17,12 @@ export class ProjectService {
     });
   }
 
+  getProject(projectId: number, userId: number): Observable<Project> {
+    return this.http.get<Project>(`${this.apiUrl}/${projectId}`, {
+      params: new HttpParams().set('userId', userId),
+    });
+  }
+
   createProject(userId: number, request: CreateProjectRequest): Observable<Project> {
     return this.http.post<Project>(this.apiUrl, request, {
       params: new HttpParams().set('userId', userId),
@@ -29,8 +35,11 @@ export function getProjectErrorMessage(error: unknown, fallback: string): string
     if (error.status === 400) {
       return 'Le nom, la description et la date de début sont obligatoires.';
     }
+    if (error.status === 403) {
+      return 'Tu ne fais pas partie de ce projet.';
+    }
     if (error.status === 404) {
-      return 'Utilisateur introuvable. Reconnecte-toi.';
+      return 'Utilisateur ou projet introuvable. Reconnecte-toi.';
     }
   }
 

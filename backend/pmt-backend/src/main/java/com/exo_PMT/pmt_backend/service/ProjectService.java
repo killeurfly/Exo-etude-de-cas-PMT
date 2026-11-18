@@ -24,15 +24,18 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final ProjectMemberService projectMemberService;
 
     public ProjectService(
             ProjectRepository projectRepository,
             ProjectMemberRepository projectMemberRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ProjectMemberService projectMemberService
     ) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
+        this.projectMemberService = projectMemberService;
     }
 
     @Transactional
@@ -70,6 +73,14 @@ public class ProjectService {
         projectMemberRepository.save(adminMembership);
 
         return ProjectResponse.from(savedProject);
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectResponse findProject(Long projectId, Long userId) {
+        projectMemberService.requireActiveMember(projectId, userId);
+        return projectRepository.findById(projectId)
+                .map(ProjectResponse::from)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable."));
     }
 
     @Transactional(readOnly = true)

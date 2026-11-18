@@ -5,6 +5,7 @@ import com.exo_PMT.pmt_backend.dto.ProjectResponse;
 import com.exo_PMT.pmt_backend.service.ProjectService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,11 @@ public class ProjectController {
     @GetMapping
     public List<ProjectResponse> findProjects(@RequestParam Long userId) {
         return projectService.findProjectsForUser(userId);
+    }
+
+    @GetMapping("/{projectId}")
+    public ProjectResponse findProject(@PathVariable Long projectId, @RequestParam Long userId) {
+        return projectService.findProject(projectId, userId);
     }
 
     @PostMapping

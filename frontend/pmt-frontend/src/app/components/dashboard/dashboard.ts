@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { CreateProjectRequest, Project } from '../../models/project';
 import { AuthService } from '../../services/auth.service';
 import { getProjectErrorMessage, ProjectService } from '../../services/project.service';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })

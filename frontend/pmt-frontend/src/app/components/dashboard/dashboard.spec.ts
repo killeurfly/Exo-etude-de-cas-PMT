@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { AuthResponse } from '../../models/auth';
 import { Project } from '../../models/project';
@@ -32,6 +33,7 @@ describe('Dashboard', () => {
     await TestBed.configureTestingModule({
       imports: [Dashboard],
       providers: [
+        provideRouter([]),
         { provide: AuthService, useValue: authService },
         { provide: ProjectService, useValue: projectService },
       ],

@@ -1,1 +1,72 @@
-<p>project works!</p>
+<p><a routerLink="/dashboard">← Retour au tableau de bord</a></p>
+
+@if (project(); as project) {
+  <h2>{{ project.name }}</h2>
+  <p>{{ project.description }}</p>
+  <p>Date de début : {{ project.startDate }}</p>
+  @if (currentRole(); as role) {
+    <p>Ton rôle : {{ roleLabels[role] }}</p>
+  }
+}
+
+@if (message()) {
+  <p role="status">{{ message() }}</p>
+}
+
+@if (isAdmin()) {
+  <section aria-labelledby="invite-heading">
+    <h3 id="invite-heading">Inviter un membre</h3>
+    <form #inviteFormRef="ngForm" (ngSubmit)="invite()">
+      <label for="invite-email">Adresse e-mail</label>
+      <input
+        id="invite-email"
+        name="email"
+        type="email"
+        required
+        email
+        [(ngModel)]="inviteForm.email"
+      />
+
+      <label for="invite-role">Rôle</label>
+      <select id="invite-role" name="role" required [(ngModel)]="inviteForm.role">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ roleLabels[role] }}</option>
+        }
+      </select>
+
+      <button type="submit" [disabled]="inviteFormRef.invalid || inviting()">
+        {{ inviting() ? 'Invitation en cours…' : 'Inviter' }}
+      </button>
+    </form>
+  </section>
+}
+
+<section aria-labelledby="members-heading">
+  <h3 id="members-heading">Membres</h3>
+  <ul>
+    @for (member of members(); track member.id) {
+      <li>
+        <strong>{{ member.name ?? member.email }}</strong>
+        @if (member.name) {
+          <span> ({{ member.email }})</span>
+        }
+        @if (member.status === 'INVITED') {
+          <span> — invitation en attente</span>
+        }
+        —
+        @if (isAdmin()) {
+          <select
+            [attr.aria-label]="'Rôle de ' + member.email"
+            (change)="changeRole(member, $any($event.target).value)"
+          >
+            @for (role of roles; track role) {
+              <option [value]="role" [selected]="role === member.role">{{ roleLabels[role] }}</option>
+            }
+          </select>
+        } @else {
+          {{ roleLabels[member.role] }}
+        }
+      </li>
+    }
+  </ul>
+</section>
