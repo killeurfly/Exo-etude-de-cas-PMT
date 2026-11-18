@@ -3,6 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Project } from '../../models/project';
 import { InviteMemberRequest, ProjectMember, ProjectRole, ROLE_LABELS } from '../../models/project-member';
+import {
+  CreateTaskRequest,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  Task,
+  TaskPriority,
+} from '../../models/task';
 import { AuthService } from '../../services/auth.service';
 import {
   getInviteErrorMessage,
@@ -10,6 +17,7 @@ import {
   ProjectMemberService,
 } from '../../services/project-member.service';
 import { getProjectErrorMessage, ProjectService } from '../../services/project.service';
+import { getTaskErrorMessage, TaskService } from '../../services/task.service';
 
 @Component({
   selector: 'app-project',
@@ -30,6 +38,16 @@ export class ProjectDetail implements OnInit {
   });
   readonly isAdmin = computed(() => this.currentRole() === 'ADMIN');
   inviteForm: InviteMemberRequest = { email: '', role: 'MEMBER' };
+
+  readonly priorities: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH'];
+  readonly priorityLabels = PRIORITY_LABELS;
+  readonly statusLabels = STATUS_LABELS;
+  readonly tasks = signal<Task[]>([]);
+  readonly taskMessage = signal('');
+  readonly creatingTask = signal(false);
+  readonly canCreateTask = computed(() => this.currentRole() === 'ADMIN' || this.currentRole() === 'MEMBER');
+  taskForm: CreateTaskRequest = this.emptyTaskForm();
+
   private projectId = 0;
 
   constructor(
@@ -37,6 +55,7 @@ export class ProjectDetail implements OnInit {
     readonly authService: AuthService,
     private readonly projectService: ProjectService,
     private readonly projectMemberService: ProjectMemberService,
+    private readonly taskService: TaskService,
   ) {}
 
   ngOnInit(): void {
@@ -54,6 +73,36 @@ export class ProjectDetail implements OnInit {
       },
     });
     this.loadMembers(user.id);
+    this.taskService.getTasks(this.projectId, user.id).subscribe({
+      next: (tasks) => this.tasks.set(tasks),
+      error: (error: unknown) => {
+        this.taskMessage.set(getProjectErrorMessage(error, 'Impossible de charger les tâches.'));
+      },
+    });
+  }
+
+  createTask(): void {
+    const user = this.authService.currentUser();
+    if (user === null) {
+      return;
+    }
+
+    this.taskMessage.set('');
+    this.creatingTask.set(true);
+    // Un champ date vidé renvoie '' : on envoie null pour « pas d'échéance ».
+    const request = { ...this.taskForm, dueDate: this.taskForm.dueDate || null };
+    this.taskService.createTask(this.projectId, user.id, request).subscribe({
+      next: (task) => {
+        this.tasks.update((tasks) => [task, ...tasks]);
+        this.taskForm = this.emptyTaskForm();
+        this.creatingTask.set(false);
+        this.taskMessage.set(`Tâche « ${task.name} » créée.`);
+      },
+      error: (error: unknown) => {
+        this.creatingTask.set(false);
+        this.taskMessage.set(getTaskErrorMessage(error));
+      },
+    });
   }
 
   invite(): void {
@@ -98,6 +147,10 @@ export class ProjectDetail implements OnInit {
         this.loadMembers(user.id);
       },
     });
+  }
+
+  private emptyTaskForm(): CreateTaskRequest {
+    return { name: '', description: '', dueDate: null, priority: 'MEDIUM' };
   }
 
   private loadMembers(userId: number): void {

@@ -13,6 +13,54 @@
   <p role="status">{{ message() }}</p>
 }
 
+<section aria-labelledby="tasks-heading">
+  <h3 id="tasks-heading">Tâches</h3>
+
+  @if (canCreateTask()) {
+    <form #taskFormRef="ngForm" (ngSubmit)="createTask()">
+      <label for="task-name">Nom de la tâche</label>
+      <input id="task-name" name="name" type="text" required maxlength="180" [(ngModel)]="taskForm.name" />
+
+      <label for="task-description">Description</label>
+      <textarea id="task-description" name="description" required [(ngModel)]="taskForm.description"></textarea>
+
+      <label for="task-due-date">Échéance (facultative)</label>
+      <input id="task-due-date" name="dueDate" type="date" [(ngModel)]="taskForm.dueDate" />
+
+      <label for="task-priority">Priorité</label>
+      <select id="task-priority" name="priority" [(ngModel)]="taskForm.priority">
+        @for (priority of priorities; track priority) {
+          <option [value]="priority">{{ priorityLabels[priority] }}</option>
+        }
+      </select>
+
+      <button type="submit" [disabled]="taskFormRef.invalid || creatingTask()">
+        {{ creatingTask() ? 'Création en cours…' : 'Créer la tâche' }}
+      </button>
+    </form>
+  }
+
+  @if (taskMessage()) {
+    <p role="status">{{ taskMessage() }}</p>
+  }
+
+  <ul>
+    @for (task of tasks(); track task.id) {
+      <li>
+        <strong>{{ task.name }}</strong>
+        — {{ statusLabels[task.status] }}
+        — priorité {{ priorityLabels[task.priority] }}
+        @if (task.dueDate) {
+          — échéance {{ task.dueDate }}
+        }
+        <p>{{ task.description }}</p>
+      </li>
+    } @empty {
+      <li>Aucune tâche pour l’instant.</li>
+    }
+  </ul>
+</section>
+
 @if (isAdmin()) {
   <section aria-labelledby="invite-heading">
     <h3 id="invite-heading">Inviter un membre</h3>

@@ -6,9 +6,11 @@ import { of, throwError } from 'rxjs';
 import { AuthResponse } from '../../models/auth';
 import { Project } from '../../models/project';
 import { ProjectMember } from '../../models/project-member';
+import { Task } from '../../models/task';
 import { AuthService } from '../../services/auth.service';
 import { ProjectMemberService } from '../../services/project-member.service';
 import { ProjectService } from '../../services/project.service';
+import { TaskService } from '../../services/task.service';
 import { ProjectDetail } from './project';
 
 describe('ProjectDetail', () => {
@@ -31,6 +33,17 @@ describe('ProjectDetail', () => {
   const authService = { currentUser: signal<AuthResponse | null>(admin) };
   const projectService = { getProject: vi.fn() };
   const memberService = { getMembers: vi.fn(), inviteMember: vi.fn(), updateRole: vi.fn() };
+  const existingTask: Task = {
+    id: 50,
+    projectId: project.id,
+    name: 'Concevoir le modèle',
+    description: 'Définir les entités',
+    dueDate: '2026-11-25',
+    priority: 'HIGH',
+    status: 'IN_PROGRESS',
+    createdByUserId: admin.id,
+  };
+  const taskService = { getTasks: vi.fn(), createTask: vi.fn() };
 
   async function createComponent(members: ProjectMember[]): Promise<void> {
     memberService.getMembers.mockReturnValue(of(members));
@@ -46,6 +59,8 @@ describe('ProjectDetail', () => {
     memberService.getMembers.mockReset();
     memberService.inviteMember.mockReset();
     memberService.updateRole.mockReset();
+    taskService.getTasks.mockReset().mockReturnValue(of([existingTask]));
+    taskService.createTask.mockReset();
 
     await TestBed.configureTestingModule({
       imports: [ProjectDetail],
@@ -55,6 +70,7 @@ describe('ProjectDetail', () => {
         { provide: AuthService, useValue: authService },
         { provide: ProjectService, useValue: projectService },
         { provide: ProjectMemberService, useValue: memberService },
+        { provide: TaskService, useValue: taskService },
       ],
     }).compileComponents();
   });
@@ -116,6 +132,60 @@ describe('ProjectDetail', () => {
 
     expect(memberService.updateRole).toHaveBeenCalledWith(10, bobMember.id, admin.id, 'OBSERVER');
     expect(component.members()[1].role).toBe('OBSERVER');
+  });
+
+  it('should load and display the project tasks', async () => {
+    await createComponent([adminMember]);
+
+    expect(taskService.getTasks).toHaveBeenCalledWith(10, admin.id);
+    const text = (fixture.nativeElement as HTMLElement).textContent;
+    expect(text).toContain('Concevoir le modèle');
+    expect(text).toContain('En cours');
+    expect(text).toContain('Haute');
+  });
+
+  it('should let members create tasks but hide the form from observers', async () => {
+    await createComponent([{ ...adminMember, role: 'MEMBER' }]);
+    expect(component.canCreateTask()).toBe(true);
+    expect((fixture.nativeElement as HTMLElement).querySelector('#task-name')).not.toBeNull();
+
+    await createComponent([{ ...adminMember, role: 'OBSERVER' }]);
+    expect(component.canCreateTask()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('#task-name')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Concevoir le modèle');
+  });
+
+  it('should create a task without due date and show it first', async () => {
+    await createComponent([adminMember]);
+    const created: Task = {
+      ...existingTask, id: 51, name: 'Nouvelle tâche', dueDate: null, priority: 'LOW', status: 'TODO',
+    };
+    taskService.createTask.mockReturnValue(of(created));
+    // Un champ date vidé dans le navigateur vaut ''.
+    component.taskForm = { name: 'Nouvelle tâche', description: 'Test', dueDate: '', priority: 'LOW' };
+
+    component.createTask();
+
+    expect(taskService.createTask).toHaveBeenCalledWith(10, admin.id, {
+      name: 'Nouvelle tâche',
+      description: 'Test',
+      dueDate: null,
+      priority: 'LOW',
+    });
+    expect(component.tasks()).toEqual([created, existingTask]);
+    expect(component.taskForm.name).toBe('');
+    expect(component.taskMessage()).toBe('Tâche « Nouvelle tâche » créée.');
+  });
+
+  it('should explain a refused task creation', async () => {
+    await createComponent([adminMember]);
+    taskService.createTask.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+
+    component.createTask();
+
+    expect(component.taskMessage()).toBe('Ton rôle ne permet pas de créer une tâche dans ce projet.');
+    expect(component.creatingTask()).toBe(false);
+    expect(component.tasks()).toEqual([existingTask]);
   });
 
   it('should keep the last administrator', async () => {
