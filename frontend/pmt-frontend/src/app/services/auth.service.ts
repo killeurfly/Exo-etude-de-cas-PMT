@@ -27,6 +27,11 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request);
   }
 
+  logout(): void {
+    localStorage.removeItem(AuthService.CURRENT_USER_KEY);
+    this.currentUserState.set(null);
+  }
+
   private readCurrentUser(): AuthResponse | null {
     const storedUser = localStorage.getItem(AuthService.CURRENT_USER_KEY);
     if (storedUser === null) {

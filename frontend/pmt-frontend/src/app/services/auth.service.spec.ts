@@ -39,6 +39,16 @@ describe('AuthService', () => {
     expect(service.currentUser()).toEqual(user);
   });
 
+  it('should forget the user after logout', () => {
+    localStorage.setItem(storageKey, JSON.stringify(user));
+    service = TestBed.inject(AuthService);
+
+    service.logout();
+
+    expect(service.currentUser()).toBeNull();
+    expect(localStorage.getItem(storageKey)).toBeNull();
+  });
+
   it('should remove invalid stored user data', () => {
     localStorage.setItem(storageKey, '{invalid');
     service = TestBed.inject(AuthService);
