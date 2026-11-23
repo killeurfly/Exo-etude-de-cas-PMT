@@ -1,7 +1,12 @@
 package com.exo_PMT.pmt_backend.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Identifiants de connexion.")
 public class LoginRequest {
+    @Schema(description = "Adresse e-mail du compte.", example = "alice@example.test")
     private String email;
+    @Schema(description = "Mot de passe.", example = "alice123")
     private String password;
 
     public LoginRequest() {}
