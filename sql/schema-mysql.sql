@@ -1,3 +1,6 @@
+-- Le fichier est en UTF-8 : sans cette ligne, un client MySQL configuré en latin1 (comme dans le conteneur Docker) enregistre mal les accents.
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS pmt_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_0900_ai_ci;
