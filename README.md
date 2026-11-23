@@ -26,6 +26,7 @@ PMT/
 ├── backend/pmt-backend/      API Spring Boot (+ Dockerfile)
 ├── frontend/pmt-frontend/    Application Angular (+ Dockerfile, nginx.conf)
 ├── sql/schema-mysql.sql      Structure de la base et données de démonstration
+├── sql/schema-pmt.svg        Schéma relationnel de la base (diagramme vectoriel, + .png)
 ├── docker-compose.yml        Lancement de l'application complète
 ├── .env.example              Variables réglables de docker compose
 └── .github/workflows/ci.yml  Pipeline CI/CD
