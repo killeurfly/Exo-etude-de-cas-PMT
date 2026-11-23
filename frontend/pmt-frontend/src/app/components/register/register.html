@@ -1,16 +1,18 @@
-<!-- src/app/components/register/register.html -->
 <h2>Inscription</h2>
 <form (ngSubmit)="register()" #registerForm="ngForm">
-  <label>Nom :</label>
-  <input type="text" [(ngModel)]="user.name" name="name" required>
-  
-  <label>Email :</label>
-  <input type="email" [(ngModel)]="user.email" name="email" required>
-  
-  <label>Mot de passe :</label>
-  <input type="password" [(ngModel)]="user.password" name="password" required>
-  
-  <button type="submit" [disabled]="registerForm.invalid">S’inscrire</button>
+  <label for="register-name">Nom :</label>
+  <input id="register-name" type="text" [(ngModel)]="user.name" name="name" required>
+
+  <label for="register-email">E-mail :</label>
+  <input id="register-email" type="email" [(ngModel)]="user.email" name="email" required>
+
+  <label for="register-password">Mot de passe :</label>
+  <input id="register-password" type="password" [(ngModel)]="user.password" name="password" required>
+
+  <button type="submit" [disabled]="registerForm.invalid || loading()">
+    {{ loading() ? 'Inscription en cours…' : 'S’inscrire' }}
+  </button>
 </form>
 
-<p *ngIf="message">{{ message }}</p>
+<p *ngIf="message()" [class.message-error]="messageIsError()" [attr.role]="messageIsError() ? 'alert' : 'status'">{{ message() }}</p>
+<p>Déjà inscrit ? <a routerLink="/login">Se connecter</a></p>

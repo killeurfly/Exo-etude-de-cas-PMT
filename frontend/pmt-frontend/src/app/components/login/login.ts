@@ -1,42 +1,41 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
-import { ChangeDetectorRef } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { LoginRequest } from '../../models/auth';
+import { AuthService, getAuthErrorMessage } from '../../services/auth.service';
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
+/** Page de connexion ; redirige vers le tableau de bord une fois connecté. */
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './login.html'
+  imports: [CommonModule, FormsModule, RouterLink],
+  templateUrl: './login.html',
 })
 export class LoginComponent {
   user: LoginRequest = { email: '', password: '' };
-  message: string = '';
+  readonly message = signal('');
+  readonly loading = signal(false);
 
   constructor(
-    private authService: AuthService,
-    private cd: ChangeDetectorRef // ← Inject ici
+    private readonly authService: AuthService,
+    private readonly router: Router,
   ) {}
 
-  login(event: Event) {
-    event.preventDefault();
-    this.message = '';
+  /** Envoie les identifiants et affiche l'erreur éventuelle. */
+  login(): void {
+    this.message.set('');
+    this.loading.set(true);
 
     this.authService.login(this.user).subscribe({
-      next: (res: any) => {
-        this.message = res.message || 'Connexion réussie !';
-        this.cd.detectChanges(); // ← Force l’update du template
+      next: () => {
+        this.loading.set(false);
+        void this.router.navigate(['/dashboard']);
       },
-      error: (err: any) => {
-        this.message = err.error?.message || 'Email ou mot de passe invalide';
-        this.cd.detectChanges(); // ← Force l’update du template
-      }
+      error: (error: unknown) => {
+        this.loading.set(false);
+        this.message.set(getAuthErrorMessage(error, 'E-mail ou mot de passe incorrect.'));
+      },
     });
   }
 }

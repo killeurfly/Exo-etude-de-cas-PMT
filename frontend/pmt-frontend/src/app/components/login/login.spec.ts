@@ -1,41 +1,55 @@
-// src/app/components/login/login.spec.ts
-
-import { LoginComponent, LoginRequest } from './login';
-import { AuthService } from '../../services/auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { ChangeDetectorRef } from '@angular/core';
+import { AuthResponse } from '../../models/auth';
+import { AuthService } from '../../services/auth.service';
+import { LoginComponent } from './login';
 
-// Fake AuthService pour les tests
-class FakeAuthService {
-  login(user: LoginRequest) {
-    if (user.email === 'test@example.com' && user.password === '1234') {
-      return of({ message: 'Connexion OK' });
-    } else {
-      return throwError({ error: { message: 'Email ou mot de passe invalide' } });
-    }
-  }
-}
+describe('LoginComponent', () => {
+  const response: AuthResponse = { id: 1, name: 'Test User', email: 'test@example.test' };
+  const authService = { login: vi.fn() };
+  let router: Router;
 
-// Fake ChangeDetectorRef pour tests
-class FakeChangeDetectorRef {
-  detectChanges() {
-    // rien à faire pour le test
-  }
-}
+  beforeEach(async () => {
+    authService.login.mockReset();
 
-// Création des instances pour le test
-const fakeAuth = new FakeAuthService() as unknown as AuthService;
-const fakeCD = new FakeChangeDetectorRef() as unknown as ChangeDetectorRef;
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authService },
+      ],
+    }).compileComponents();
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+  });
 
-// Création du composant LoginComponent
-const loginComponent = new LoginComponent(fakeAuth, fakeCD);
+  it('should log in and navigate to the dashboard', () => {
+    authService.login.mockReturnValue(of(response));
+    const component = TestBed.createComponent(LoginComponent).componentInstance;
+    component.user = { email: 'test@example.test', password: 'pass123' };
 
-// Test 1 : connexion réussie
-loginComponent.user = { email: 'test@example.com', password: '1234' };
-loginComponent.login(new Event('submit'));
-console.log('Message succès:', loginComponent.message);
+    component.login();
 
-// Test 2 : connexion échouée
-loginComponent.user = { email: 'fail@example.com', password: '0000' };
-loginComponent.login(new Event('submit'));
-console.log('Message erreur:', loginComponent.message);
+    expect(authService.login).toHaveBeenCalledWith(component.user);
+    expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(component.loading()).toBe(false);
+  });
+
+  it('should display an API error when login fails', () => {
+    authService.login.mockReturnValue(
+      throwError(() => new HttpErrorResponse({
+        status: 401,
+        error: { timestamp: '2026-11-04T11:11:19.064Z', status: 401, error: 'Unauthorized', path: '/api/auth/login' },
+      })),
+    );
+    const component = TestBed.createComponent(LoginComponent).componentInstance;
+
+    component.login();
+
+    expect(component.message()).toBe('Adresse e-mail ou mot de passe incorrect.');
+    expect(component.loading()).toBe(false);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+});

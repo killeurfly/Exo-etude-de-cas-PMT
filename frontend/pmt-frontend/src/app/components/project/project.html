@@ -1,1 +1,205 @@
-<p>project works!</p>
+<p><a routerLink="/dashboard">← Retour au tableau de bord</a></p>
+
+@if (project(); as project) {
+  <h2>{{ project.name }}</h2>
+  <p>{{ project.description }}</p>
+  <p>Date de début : {{ project.startDate }}</p>
+  @if (currentRole(); as role) {
+    <p>Ton rôle : {{ roleLabels[role] }}</p>
+  }
+}
+
+@if (message()) {
+  <p [class.message-error]="messageIsError()" [attr.role]="messageIsError() ? 'alert' : 'status'">{{ message() }}</p>
+}
+
+<section aria-labelledby="tasks-heading">
+  <h3 id="tasks-heading">Tâches</h3>
+
+  @if (canEditTasks()) {
+    <form #taskFormRef="ngForm" (ngSubmit)="createTask()">
+      <label for="task-name">Nom de la tâche</label>
+      <input id="task-name" name="name" type="text" required maxlength="180" [(ngModel)]="taskForm.name" />
+
+      <label for="task-description">Description</label>
+      <textarea id="task-description" name="description" required [(ngModel)]="taskForm.description"></textarea>
+
+      <label for="task-due-date">Échéance (facultative)</label>
+      <input id="task-due-date" name="dueDate" type="date" [(ngModel)]="taskForm.dueDate" />
+
+      <label for="task-priority">Priorité</label>
+      <select id="task-priority" name="priority" [(ngModel)]="taskForm.priority">
+        @for (priority of priorities; track priority) {
+          <option [value]="priority">{{ priorityLabels[priority] }}</option>
+        }
+      </select>
+
+      <label for="task-assignee">Assignée à</label>
+      <select id="task-assignee" name="assigneeUserId" [(ngModel)]="taskForm.assigneeUserId">
+        <option [ngValue]="null">Personne</option>
+        @for (member of assignableMembers(); track member.id) {
+          <option [ngValue]="member.userId">{{ member.name ?? member.email }}</option>
+        }
+      </select>
+
+      <button type="submit" [disabled]="taskFormRef.invalid || creatingTask()">
+        {{ creatingTask() ? 'Création en cours…' : 'Créer la tâche' }}
+      </button>
+    </form>
+  }
+
+  @if (taskMessage()) {
+    <p [class.message-error]="taskMessageIsError()" [attr.role]="taskMessageIsError() ? 'alert' : 'status'">{{ taskMessage() }}</p>
+  }
+
+  <div class="task-board">
+    @for (column of tasksByStatus(); track column.status) {
+      <section class="task-column" [attr.aria-labelledby]="'column-' + column.status">
+        <h4 [id]="'column-' + column.status">{{ statusLabels[column.status] }} ({{ column.tasks.length }})</h4>
+        <ul>
+          @for (task of column.tasks; track task.id) {
+            <li>
+              @if (editingTaskId() === task.id) {
+                <form #editFormRef="ngForm" (ngSubmit)="saveTask()">
+                  <label for="edit-name">Nom de la tâche</label>
+                  <input id="edit-name" name="name" type="text" required maxlength="180" [(ngModel)]="editForm.name" />
+
+                  <label for="edit-description">Description</label>
+                  <textarea id="edit-description" name="description" required [(ngModel)]="editForm.description"></textarea>
+
+                  <label for="edit-due-date">Échéance (facultative)</label>
+                  <input id="edit-due-date" name="dueDate" type="date" [(ngModel)]="editForm.dueDate" />
+
+                  <label for="edit-priority">Priorité</label>
+                  <select id="edit-priority" name="priority" [(ngModel)]="editForm.priority">
+                    @for (priority of priorities; track priority) {
+                      <option [value]="priority">{{ priorityLabels[priority] }}</option>
+                    }
+                  </select>
+
+                  <label for="edit-status">Statut</label>
+                  <select id="edit-status" name="status" [(ngModel)]="editForm.status">
+                    @for (status of statuses; track status) {
+                      <option [value]="status">{{ statusLabels[status] }}</option>
+                    }
+                  </select>
+
+                  <label for="edit-assignee">Assignée à</label>
+                  <select id="edit-assignee" name="assigneeUserId" [(ngModel)]="editForm.assigneeUserId">
+                    <option [ngValue]="null">Personne</option>
+                    @for (member of assignableMembers(); track member.id) {
+                      <option [ngValue]="member.userId">{{ member.name ?? member.email }}</option>
+                    }
+                  </select>
+
+                  <button type="submit" [disabled]="editFormRef.invalid || savingTask()">
+                    {{ savingTask() ? 'Enregistrement…' : 'Enregistrer' }}
+                  </button>
+                  <button type="button" (click)="cancelEdit()">Annuler</button>
+                </form>
+              } @else {
+                <a [routerLink]="['/projects', task.projectId, 'tasks', task.id]"><strong>{{ task.name }}</strong></a>
+                — priorité {{ priorityLabels[task.priority] }}
+                @if (task.dueDate) {
+                  — échéance {{ task.dueDate }}
+                }
+                @if (assigneeName(task); as assignee) {
+                  — assignée à {{ assignee }}
+                }
+                @if (task.completedAt) {
+                  — terminée le {{ task.completedAt | date: 'dd/MM/yyyy à HH:mm' }}
+                }
+                @if (canEditTasks()) {
+                  <button type="button" (click)="startEdit(task)">Modifier</button>
+                }
+                <button type="button" (click)="toggleHistory(task)">
+                  {{ historyTaskId() === task.id ? 'Masquer l’historique' : 'Historique' }}
+                </button>
+                <p>{{ task.description }}</p>
+                @if (historyTaskId() === task.id) {
+                  <div class="task-history">
+                    @if (historyMessage()) {
+                      <p class="message-error" role="alert">{{ historyMessage() }}</p>
+                    }
+                    <ul>
+                      @for (entry of history(); track entry.id) {
+                        <li>
+                          {{ entry.changedAt | date: 'dd/MM/yyyy HH:mm' }}
+                          — {{ entry.changedByName ?? 'Utilisateur supprimé' }} :
+                          {{ historyFieldLabels[entry.fieldName] ?? entry.fieldName }}
+                          {{ historyValue(entry, entry.oldValue) }} → {{ historyValue(entry, entry.newValue) }}
+                        </li>
+                      } @empty {
+                        <li>Aucune modification enregistrée.</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              }
+            </li>
+          } @empty {
+            <li>Aucune tâche.</li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+</section>
+
+@if (isAdmin()) {
+  <section aria-labelledby="invite-heading">
+    <h3 id="invite-heading">Inviter un membre</h3>
+    <form #inviteFormRef="ngForm" (ngSubmit)="invite()">
+      <label for="invite-email">Adresse e-mail</label>
+      <input
+        id="invite-email"
+        name="email"
+        type="email"
+        required
+        email
+        [(ngModel)]="inviteForm.email"
+      />
+
+      <label for="invite-role">Rôle</label>
+      <select id="invite-role" name="role" required [(ngModel)]="inviteForm.role">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ roleLabels[role] }}</option>
+        }
+      </select>
+
+      <button type="submit" [disabled]="inviteFormRef.invalid || inviting()">
+        {{ inviting() ? 'Invitation en cours…' : 'Inviter' }}
+      </button>
+    </form>
+  </section>
+}
+
+<section aria-labelledby="members-heading">
+  <h3 id="members-heading">Membres</h3>
+  <ul>
+    @for (member of members(); track member.id) {
+      <li>
+        <strong>{{ member.name ?? member.email }}</strong>
+        @if (member.name) {
+          <span> ({{ member.email }})</span>
+        }
+        @if (member.status === 'INVITED') {
+          <span> — invitation en attente</span>
+        }
+        —
+        @if (isAdmin()) {
+          <select
+            [attr.aria-label]="'Rôle de ' + member.email"
+            (change)="changeRole(member, $any($event.target).value)"
+          >
+            @for (role of roles; track role) {
+              <option [value]="role" [selected]="role === member.role">{{ roleLabels[role] }}</option>
+            }
+          </select>
+        } @else {
+          {{ roleLabels[member.role] }}
+        }
+      </li>
+    }
+  </ul>
+</section>

@@ -1,0 +1,54 @@
+# Lance PMT complet : base MySQL, serveur d'e-mails de test, backend Spring et frontend Angular.
+#   Construire les images localement : docker compose up -d --build
+#   Utiliser les images publiées sur Docker Hub : docker compose pull && docker compose up -d
+# Application : http://localhost:4200 · API : http://localhost:8080 · E-mails : http://localhost:8025
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pmt_root}
+    volumes:
+      # Exécuté par MySQL au premier démarrage (volume vide) : crée pmt_db et les données de démonstration.
+      - ./sql/schema-mysql.sql:/docker-entrypoint-initdb.d/schema-mysql.sql:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025"
+
+  backend:
+    build: ./backend/pmt-backend
+    image: ${DOCKERHUB_USERNAME:-pmt}/pmt-backend:${PMT_TAG:-latest}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/pmt_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-pmt_root}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM: pmt@example.test
+      MAIL_SMTP_AUTH: "false"
+      MAIL_SMTP_STARTTLS: "false"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend/pmt-frontend
+    image: ${DOCKERHUB_USERNAME:-pmt}/pmt-frontend:${PMT_TAG:-latest}
+    depends_on:
+      - backend
+    # Le frontend appelle l'API sur http://localhost:8080 et le backend n'accepte que l'origine du port 4200.
+    ports:
+      - "4200:80"
+
+volumes:
+  mysql-data:
