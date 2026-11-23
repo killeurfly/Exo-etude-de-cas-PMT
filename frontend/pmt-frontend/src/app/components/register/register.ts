@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { RegisterRequest } from '../../models/auth';
 import { AuthService, getAuthErrorMessage } from '../../services/auth.service';
 
+/** Page d'inscription ; une fois le compte créé, un message invite à se connecter. */
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -19,6 +20,7 @@ export class RegisterComponent {
 
   constructor(private readonly authService: AuthService) {}
 
+  /** Envoie le formulaire d'inscription et affiche l'erreur éventuelle. */
   register(): void {
     this.message.set('');
     this.loading.set(true);

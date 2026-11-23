@@ -22,6 +22,7 @@ public record TaskHistoryResponse(
         @Schema(description = "Date et heure de la modification.", example = "2026-11-18T14:05:00")
         LocalDateTime changedAt
 ) {
+    /** Construit la réponse à partir de l'entrée d'historique et du nom de son auteur. */
     public static TaskHistoryResponse from(TaskHistory history, String changedByName) {
         return new TaskHistoryResponse(
                 history.getId(),

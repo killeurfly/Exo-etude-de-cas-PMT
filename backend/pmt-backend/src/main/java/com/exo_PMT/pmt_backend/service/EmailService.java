@@ -8,6 +8,12 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+/**
+ * Envoi des notifications par e-mail via le serveur SMTP configuré ({@code spring.mail.*}).
+ * <p>
+ * L'envoi n'est actif que si un expéditeur est configuré ({@code MAIL_FROM} ou {@code MAIL_USERNAME}) :
+ * sans configuration (tests, CI), les notifications sont seulement journalisées.
+ */
 @Service
 public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
@@ -20,11 +26,20 @@ public class EmailService {
         this.from = from;
     }
 
+    /** Indique si un expéditeur est configuré, donc si les e-mails sont réellement envoyés. */
     public boolean isEnabled() {
         return from != null && !from.isBlank();
     }
 
-    // Un échec d'envoi ne doit pas annuler l'assignation : on le signale seulement dans les logs.
+    /**
+     * Prévient une personne qu'une tâche vient de lui être assignée.
+     * Un échec d'envoi ne doit pas annuler l'assignation : il est seulement signalé dans les logs.
+     *
+     * @param to             adresse e-mail de la personne assignée
+     * @param taskName       nom de la tâche
+     * @param projectName    nom du projet
+     * @param assignedByName nom de la personne qui a fait l'assignation
+     */
     public void sendTaskAssigned(String to, String taskName, String projectName, String assignedByName) {
         if (!isEnabled()) {
             log.info("E-mail non envoyé à {} (MAIL_FROM / MAIL_USERNAME non configuré) : tâche « {} » assignée.", to, taskName);

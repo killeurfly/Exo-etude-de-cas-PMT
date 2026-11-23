@@ -5,6 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Autorise le frontend Angular, servi sur le port 4200 ({@code localhost}, {@code 127.0.0.1} ou {@code [::1]}),
+ * à appeler l'API depuis le navigateur.
+ */
 @Configuration
 public class CorsConfig {
 

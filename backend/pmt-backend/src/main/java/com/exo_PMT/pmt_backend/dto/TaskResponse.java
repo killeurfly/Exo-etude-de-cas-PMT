@@ -31,6 +31,9 @@ public record TaskResponse(
         @Schema(description = "Identifiant de la personne assignée, ou null si personne n'est assigné.", example = "2", nullable = true)
         Long assigneeUserId
 ) {
+    /**
+     * Construit la réponse à partir de la tâche et de la personne assignée, stockée à part ({@code null} si aucune).
+     */
     public static TaskResponse from(Task task, Long assigneeUserId) {
         return new TaskResponse(
                 task.getId(),

@@ -5,6 +5,10 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Informations générales de la documentation OpenAPI générée par springdoc :
+ * titre, version et explication du paramètre {@code userId}. Interface : {@code /swagger-ui.html}.
+ */
 @Configuration
 public class OpenApiConfig {
 

@@ -14,6 +14,12 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Adhésion d'une personne à un projet, avec son rôle (table {@code project_members}).
+ * <p>
+ * Une ligne peut exister avant l'inscription de la personne : statut INVITED, {@code userId} nul,
+ * personne identifiée par son e-mail. Elle passe à ACTIVE lorsque le compte est créé.
+ */
 @Entity
 @Table(name = "project_members")
 public class ProjectMember {
@@ -24,9 +30,11 @@ public class ProjectMember {
     @Column(name = "project_id", nullable = false)
     private Long projectId;
 
+    /** Compte de la personne ; {@code null} tant que l'invitation n'est pas acceptée. */
     @Column(name = "user_id")
     private Long userId;
 
+    /** E-mail invité ; il sert à rattacher l'invitation au compte lors de l'inscription. */
     @Column(nullable = false, length = 254)
     private String email;
 
@@ -38,9 +46,11 @@ public class ProjectMember {
     @Column(nullable = false, length = 20)
     private ProjectMemberStatus status = ProjectMemberStatus.INVITED;
 
+    /** Administrateur qui a invité la personne ({@code null} si son compte a été supprimé). */
     @Column(name = "invited_by_user_id")
     private Long invitedByUserId;
 
+    /** Date du passage au statut ACTIVE. */
     @Column(name = "joined_at")
     private LocalDateTime joinedAt;
 

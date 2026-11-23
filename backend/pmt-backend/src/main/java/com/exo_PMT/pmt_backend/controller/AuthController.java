@@ -15,6 +15,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Inscription et connexion ({@code /api/auth}).
+ * <p>
+ * Le détail de chaque endpoint (paramètres, réponses, codes d'erreur) est décrit par les annotations
+ * OpenAPI et consultable sur {@code /swagger-ui.html}. Les règles métier sont dans le service.
+ */
 @Tag(name = "Authentification", description = "Inscription et connexion. Renvoie l'identifiant à utiliser ensuite comme `userId`.")
 @RestController
 @RequestMapping("/api/auth")

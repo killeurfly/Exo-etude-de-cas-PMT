@@ -17,6 +17,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Création et consultation des projets.
+ * <p>
+ * Les droits d'accès à un projet sont vérifiés par {@link ProjectMemberService#requireActiveMember}.
+ */
 @Service
 public class ProjectService {
     private static final int MAX_NAME_LENGTH = 160;
@@ -38,6 +43,16 @@ public class ProjectService {
         this.projectMemberService = projectMemberService;
     }
 
+    /**
+     * Crée un projet et inscrit son créateur comme administrateur actif, dans la même transaction :
+     * un projet n'existe jamais sans administrateur.
+     *
+     * @param userId  identifiant du créateur
+     * @param request nom (160 caractères max), description et date de début
+     * @return le projet créé
+     * @throws ResponseStatusException 400 si une information est manquante ou le nom trop long ;
+     *                                 404 si l'utilisateur n'existe pas
+     */
     @Transactional
     public ProjectResponse createProject(Long userId, CreateProjectRequest request) {
         if (request == null) {
@@ -75,6 +90,14 @@ public class ProjectService {
         return ProjectResponse.from(savedProject);
     }
 
+    /**
+     * Renvoie un projet à l'un de ses membres actifs, quel que soit son rôle.
+     *
+     * @param projectId identifiant du projet
+     * @param userId    identifiant de l'utilisateur qui consulte
+     * @return le projet
+     * @throws ResponseStatusException 404 si le projet n'existe pas ; 403 si l'utilisateur n'en est pas membre actif
+     */
     @Transactional(readOnly = true)
     public ProjectResponse findProject(Long projectId, Long userId) {
         projectMemberService.requireActiveMember(projectId, userId);
@@ -83,6 +106,14 @@ public class ProjectService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Projet introuvable."));
     }
 
+    /**
+     * Liste les projets dont l'utilisateur est membre actif, du plus récent au plus ancien.
+     * Les invitations en attente ne donnent pas accès au projet.
+     *
+     * @param userId identifiant de l'utilisateur connecté
+     * @return les projets, éventuellement aucun
+     * @throws ResponseStatusException 404 si l'utilisateur n'existe pas
+     */
     @Transactional(readOnly = true)
     public List<ProjectResponse> findProjectsForUser(Long userId) {
         if (!userRepository.existsById(userId)) {

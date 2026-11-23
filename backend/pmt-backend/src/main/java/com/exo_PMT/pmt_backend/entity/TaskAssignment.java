@@ -10,6 +10,12 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * Assignation d'une tâche à un membre du projet (table {@code task_assignments}).
+ * <p>
+ * En base, deux clés étrangères composées garantissent que la tâche appartient au projet
+ * et que la personne assignée en est membre.
+ */
 @Entity
 @Table(name = "task_assignments")
 public class TaskAssignment {
@@ -17,6 +23,7 @@ public class TaskAssignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Redondant avec la tâche, mais nécessaire aux deux clés étrangères composées. */
     @Column(name = "project_id", nullable = false)
     private Long projectId;
 
@@ -26,6 +33,7 @@ public class TaskAssignment {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    /** Personne qui a fait l'assignation ({@code null} si son compte a été supprimé). */
     @Column(name = "assigned_by_user_id")
     private Long assignedByUserId;
 

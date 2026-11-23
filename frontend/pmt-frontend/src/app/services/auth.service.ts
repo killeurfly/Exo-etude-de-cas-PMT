@@ -3,6 +3,12 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth';
 
+/**
+ * Connexion, inscription et mémorisation de l'utilisateur connecté.
+ *
+ * L'utilisateur est gardé dans un signal et dans le `localStorage`, pour rester connecté après
+ * un rechargement de la page. Il n'y a pas de jeton : la sécurisation n'est pas demandée par l'énoncé.
+ */
 @Injectable({
   providedIn: 'root',
 })
@@ -14,6 +20,7 @@ export class AuthService {
 
   constructor(private readonly http: HttpClient) {}
 
+  /** Connecte l'utilisateur et le mémorise si les identifiants sont acceptés. */
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(
       tap((user) => {
@@ -23,15 +30,21 @@ export class AuthService {
     );
   }
 
+  /** Crée un compte. L'utilisateur doit ensuite se connecter. */
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request);
   }
 
+  /** Oublie l'utilisateur connecté. */
   logout(): void {
     localStorage.removeItem(AuthService.CURRENT_USER_KEY);
     this.currentUserState.set(null);
   }
 
+  /**
+   * Relit l'utilisateur mémorisé au démarrage. Une valeur illisible ou incomplète
+   * (modifiée à la main, ancienne version) est effacée plutôt que d'être utilisée.
+   */
   private readCurrentUser(): AuthResponse | null {
     const storedUser = localStorage.getItem(AuthService.CURRENT_USER_KEY);
     if (storedUser === null) {
@@ -52,6 +65,7 @@ export class AuthService {
     return null;
   }
 
+  /** Vérifie qu'une valeur relue du `localStorage` a bien la forme d'un utilisateur. */
   private isAuthResponse(value: unknown): value is AuthResponse {
     return typeof value === 'object'
       && value !== null
@@ -64,6 +78,10 @@ export class AuthService {
   }
 }
 
+/**
+ * Transforme une erreur de connexion ou d'inscription en message lisible : message du backend s'il y en a un,
+ * sinon texte selon le code HTTP (401, 409), sinon `fallback`.
+ */
 export function getAuthErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof HttpErrorResponse) {
     if (typeof error.error === 'object' && error.error !== null) {

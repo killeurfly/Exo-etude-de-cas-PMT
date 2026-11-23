@@ -16,6 +16,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Tâche d'un projet (table {@code tasks}).
+ * <p>
+ * La personne assignée n'est pas stockée ici mais dans {@link TaskAssignment}, et chaque modification
+ * est tracée dans {@link TaskHistory}.
+ */
 @Entity
 @Table(name = "tasks")
 public class Task {
@@ -32,6 +38,7 @@ public class Task {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    /** Échéance facultative. */
     @Column(name = "due_date")
     private LocalDate dueDate;
 
@@ -43,9 +50,11 @@ public class Task {
     @Column(nullable = false, length = 20)
     private TaskStatus status = TaskStatus.TODO;
 
+    /** Renseignée automatiquement au passage à DONE, effacée si la tâche est rouverte. */
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    /** Créateur de la tâche ({@code null} si son compte a été supprimé). */
     @Column(name = "created_by_user_id")
     private Long createdByUserId;
 

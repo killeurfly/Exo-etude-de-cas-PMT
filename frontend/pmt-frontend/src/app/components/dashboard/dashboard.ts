@@ -6,6 +6,9 @@ import { CreateProjectRequest, Project } from '../../models/project';
 import { AuthService } from '../../services/auth.service';
 import { getProjectErrorMessage, ProjectService } from '../../services/project.service';
 
+/**
+ * Tableau de bord : liste des projets de l'utilisateur et formulaire de création d'un projet.
+ */
 @Component({
   selector: 'app-dashboard',
   imports: [CommonModule, FormsModule, RouterLink],
@@ -34,6 +37,7 @@ export class Dashboard implements OnInit {
     this.loadProjects(user.id);
   }
 
+  /** Crée le projet saisi et l'ajoute en tête de liste. */
   createProject(): void {
     const user = this.authService.currentUser();
     if (user === null) {
@@ -57,6 +61,7 @@ export class Dashboard implements OnInit {
     });
   }
 
+  /** Charge les projets de l'utilisateur. */
   private loadProjects(userId: number): void {
     this.loading.set(true);
     this.projectService.getProjects(userId).subscribe({

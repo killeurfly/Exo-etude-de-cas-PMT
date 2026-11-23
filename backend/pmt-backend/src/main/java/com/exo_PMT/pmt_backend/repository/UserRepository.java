@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
+/** Accès à la table {@code users}. */
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByEmailAndPassword(String email, String password);
+    /** Recherche un compte par son e-mail (à normaliser avant l'appel). */
     Optional<User> findByEmail(String email);
 }

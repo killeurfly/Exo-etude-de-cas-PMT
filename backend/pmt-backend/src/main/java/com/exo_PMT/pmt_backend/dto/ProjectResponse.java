@@ -18,6 +18,7 @@ public record ProjectResponse(
         @Schema(description = "Identifiant du créateur du projet.", example = "1", nullable = true)
         Long createdByUserId
 ) {
+    /** Construit la réponse à partir de l'entité. */
     public static ProjectResponse from(Project project) {
         return new ProjectResponse(
                 project.getId(),

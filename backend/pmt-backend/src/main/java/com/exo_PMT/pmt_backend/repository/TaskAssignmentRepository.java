@@ -4,16 +4,12 @@ import com.exo_PMT.pmt_backend.entity.TaskAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
+/** Accès à la table {@code task_assignments}. */
 public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, Long> {
+    /** Assignation(s) d'une tâche. */
     List<TaskAssignment> findByTaskId(Long taskId);
 
+    /** Toutes les assignations d'un projet, chargées en une requête pour la liste des tâches. */
     List<TaskAssignment> findByProjectId(Long projectId);
-
-    List<TaskAssignment> findByUserId(Long userId);
-
-    Optional<TaskAssignment> findByTaskIdAndUserId(Long taskId, Long userId);
-
-    void deleteByTaskIdAndUserId(Long taskId, Long userId);
 }

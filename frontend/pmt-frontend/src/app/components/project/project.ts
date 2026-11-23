@@ -24,6 +24,14 @@ import {
 import { getProjectErrorMessage, ProjectService } from '../../services/project.service';
 import { getTaskErrorMessage, TaskService } from '../../services/task.service';
 
+/**
+ * Page d'un projet (`/projects/:id`) : informations, tableau des tâches par statut, création,
+ * modification et historique des tâches, membres et invitations.
+ *
+ * Ce qui est affiché dépend du rôle de l'utilisateur dans le projet (`currentRole`) : les formulaires
+ * de tâches sont réservés aux rôles ADMIN et MEMBER, la gestion des membres aux ADMIN. Le backend
+ * vérifie de toute façon ces droits.
+ */
 @Component({
   selector: 'app-project',
   imports: [DatePipe, FormsModule, RouterLink],
@@ -80,6 +88,9 @@ export class ProjectDetail implements OnInit {
     private readonly taskService: TaskService,
   ) {}
 
+  /**
+   * Lit l'identifiant du projet dans l'URL et charge en parallèle le projet, ses membres et ses tâches.
+   */
   ngOnInit(): void {
     this.projectId = Number(this.route.snapshot.paramMap.get('id'));
     const user = this.authService.currentUser();
@@ -103,6 +114,7 @@ export class ProjectDetail implements OnInit {
     });
   }
 
+  /** Crée la tâche saisie et l'ajoute en tête de liste. */
   createTask(): void {
     const user = this.authService.currentUser();
     if (user === null) {
@@ -127,6 +139,7 @@ export class ProjectDetail implements OnInit {
     });
   }
 
+  /** Ouvre le formulaire de modification, prérempli avec la tâche. */
   startEdit(task: Task): void {
     this.taskMessage.set('');
     this.editForm = {
@@ -140,10 +153,15 @@ export class ProjectDetail implements OnInit {
     this.editingTaskId.set(task.id);
   }
 
+  /** Ferme le formulaire de modification sans enregistrer. */
   cancelEdit(): void {
     this.editingTaskId.set(null);
   }
 
+  /**
+   * Enregistre la tâche en cours de modification. En cas de refus, le formulaire reste ouvert
+   * avec le message d'erreur.
+   */
   saveTask(): void {
     const user = this.authService.currentUser();
     const taskId = this.editingTaskId();
@@ -168,6 +186,7 @@ export class ProjectDetail implements OnInit {
     });
   }
 
+  /** Affiche l'historique d'une tâche (chargé à la demande) ou le masque s'il est déjà ouvert. */
   toggleHistory(task: Task): void {
     const user = this.authService.currentUser();
     if (user === null) {
@@ -189,7 +208,7 @@ export class ProjectDetail implements OnInit {
     });
   }
 
-  // Les valeurs sont stockées brutes (codes, identifiants) : on les traduit pour l'affichage.
+  /** Traduit une valeur brute de l'historique (code, identifiant) en texte lisible. */
   historyValue(entry: TaskHistoryEntry, value: string | null): string {
     if (value === null || value === '') {
       return '—';
@@ -207,6 +226,10 @@ export class ProjectDetail implements OnInit {
     return value;
   }
 
+  /**
+   * Envoie l'invitation saisie. Le message indique si la personne a rejoint le projet
+   * ou si l'invitation attend son inscription.
+   */
   invite(): void {
     const user = this.authService.currentUser();
     if (user === null) {
@@ -231,6 +254,9 @@ export class ProjectDetail implements OnInit {
     });
   }
 
+  /**
+   * Change le rôle d'un membre ; en cas de refus, la liste est rechargée pour réafficher le rôle réel.
+   */
   changeRole(member: ProjectMember, role: ProjectRole): void {
     const user = this.authService.currentUser();
     if (user === null || role === member.role) {
@@ -251,6 +277,7 @@ export class ProjectDetail implements OnInit {
     });
   }
 
+  /** Nom (ou e-mail) de la personne assignée à la tâche, `null` si personne. */
   assigneeName(task: Task): string | null {
     if (task.assigneeUserId === null) {
       return null;
@@ -259,10 +286,12 @@ export class ProjectDetail implements OnInit {
     return member?.name ?? member?.email ?? null;
   }
 
+  /** Valeurs initiales du formulaire de création de tâche. */
   private emptyTaskForm(): CreateTaskRequest {
     return { name: '', description: '', dueDate: null, priority: 'MEDIUM', assigneeUserId: null };
   }
 
+  /** Charge la liste des membres du projet. */
   private loadMembers(userId: number): void {
     this.projectMemberService.getMembers(this.projectId, userId).subscribe({
       next: (members) => this.members.set(members),

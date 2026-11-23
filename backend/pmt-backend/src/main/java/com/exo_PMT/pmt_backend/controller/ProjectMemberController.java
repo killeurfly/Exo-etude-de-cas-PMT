@@ -21,6 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Invitations et rôles des membres d'un projet ({@code /api/projects/{projectId}/members}).
+ * <p>
+ * Le détail de chaque endpoint (paramètres, réponses, codes d'erreur) est décrit par les annotations
+ * OpenAPI et consultable sur {@code /swagger-ui.html}. Les règles métier sont dans le service.
+ */
 @Tag(name = "Membres", description = "Invitation des membres et gestion de leurs rôles dans un projet.")
 @RestController
 @RequestMapping("/api/projects/{projectId}/members")

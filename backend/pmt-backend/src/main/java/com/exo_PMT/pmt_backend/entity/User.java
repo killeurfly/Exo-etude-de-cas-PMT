@@ -11,6 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+/** Compte utilisateur (table {@code users}). */
 @Entity
 @Table(name = "users")
 public class User {
@@ -21,9 +22,11 @@ public class User {
     @Column(nullable = false, length = 120)
     private String name;
 
+    /** Adresse unique, toujours en minuscules (voir {@code UserService.normalizeEmail}). */
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 
+    /** Stocké en clair : la sécurisation n'est pas demandée par l'énoncé. */
     @Column(nullable = false, length = 255)
     private String password;
 

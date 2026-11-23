@@ -20,6 +20,9 @@ public record ProjectMemberResponse(
         @Schema(description = "ACTIVE pour un membre, INVITED pour une invitation en attente.", example = "ACTIVE")
         ProjectMemberStatus status
 ) {
+    /**
+     * Construit la réponse à partir de l'adhésion et du nom de l'utilisateur ({@code null} pour une invitation en attente).
+     */
     public static ProjectMemberResponse from(ProjectMember member, String name) {
         return new ProjectMemberResponse(
                 member.getId(),

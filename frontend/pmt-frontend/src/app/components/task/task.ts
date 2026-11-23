@@ -16,6 +16,9 @@ import { ProjectMemberService } from '../../services/project-member.service';
 import { getProjectErrorMessage } from '../../services/project.service';
 import { TaskService } from '../../services/task.service';
 
+/**
+ * Page d'une tâche (`/projects/:id/tasks/:taskId`) : toutes ses informations et son historique, pour tous les rôles.
+ */
 @Component({
   selector: 'app-task',
   imports: [DatePipe, RouterLink],
@@ -40,6 +43,9 @@ export class TaskDetail implements OnInit {
     private readonly projectMemberService: ProjectMemberService,
   ) {}
 
+  /**
+   * Lit les identifiants dans l'URL et charge en parallèle la tâche, les membres et l'historique.
+   */
   ngOnInit(): void {
     this.projectId = Number(this.route.snapshot.paramMap.get('id'));
     const taskId = Number(this.route.snapshot.paramMap.get('taskId'));
@@ -64,7 +70,7 @@ export class TaskDetail implements OnInit {
     });
   }
 
-  // Les ids d'utilisateur sont traduits en noms grâce à la liste des membres.
+  /** Traduit un identifiant d'utilisateur en nom grâce à la liste des membres du projet. */
   memberName(userId: number | null): string {
     if (userId === null) {
       return 'Personne';
@@ -73,7 +79,7 @@ export class TaskDetail implements OnInit {
     return member?.name ?? member?.email ?? 'Ancien membre';
   }
 
-  // Les valeurs de l'historique sont stockées brutes (codes, identifiants) : on les traduit pour l'affichage.
+  /** Traduit une valeur brute de l'historique (code, identifiant) en texte lisible. */
   historyValue(entry: TaskHistoryEntry, value: string | null): string {
     if (value === null || value === '') {
       return '—';

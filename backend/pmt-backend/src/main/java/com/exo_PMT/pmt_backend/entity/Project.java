@@ -12,6 +12,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Projet (table {@code projects}).
+ * <p>
+ * Le rôle de chaque personne, créateur compris, est porté par {@link ProjectMember}.
+ */
 @Entity
 @Table(name = "projects")
 public class Project {
@@ -28,6 +33,7 @@ public class Project {
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
+    /** Créateur du projet, inscrit comme administrateur à la création. */
     @Column(name = "created_by_user_id", nullable = false)
     private Long createdByUserId;
 

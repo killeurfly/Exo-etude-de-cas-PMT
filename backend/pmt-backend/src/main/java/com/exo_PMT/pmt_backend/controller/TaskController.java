@@ -22,6 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Tâches d'un projet et leur historique ({@code /api/projects/{projectId}/tasks}).
+ * <p>
+ * Le détail de chaque endpoint (paramètres, réponses, codes d'erreur) est décrit par les annotations
+ * OpenAPI et consultable sur {@code /swagger-ui.html}. Les règles métier sont dans le service.
+ */
 @Tag(name = "Tâches", description = "Création, consultation, modification, assignation et historique des tâches d'un projet.")
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks")

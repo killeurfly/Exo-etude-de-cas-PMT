@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/** Modification d'un champ d'une tâche (table {@code task_history}). */
 @Entity
 @Table(name = "task_history")
 public class TaskHistory {
@@ -23,12 +24,15 @@ public class TaskHistory {
     @Column(name = "changed_by_user_id")
     private Long changedByUserId;
 
+    /** Champ modifié : name, description, dueDate, priority, status ou assignee. */
     @Column(name = "field_name", nullable = false, length = 80)
     private String fieldName;
 
+    /** Ancienne valeur brute (code d'énumération, date ISO ou identifiant), ou {@code null}. */
     @Column(name = "old_value", columnDefinition = "TEXT")
     private String oldValue;
 
+    /** Nouvelle valeur brute, ou {@code null}. */
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 

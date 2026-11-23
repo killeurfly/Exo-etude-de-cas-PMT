@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { LoginRequest } from '../../models/auth';
 import { AuthService, getAuthErrorMessage } from '../../services/auth.service';
 
+/** Page de connexion ; redirige vers le tableau de bord une fois connecté. */
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -21,6 +22,7 @@ export class LoginComponent {
     private readonly router: Router,
   ) {}
 
+  /** Envoie les identifiants et affiche l'erreur éventuelle. */
   login(): void {
     this.message.set('');
     this.loading.set(true);

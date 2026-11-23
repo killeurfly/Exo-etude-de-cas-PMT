@@ -31,6 +31,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Tâches d'un projet : création, modification, assignation, historique et notification.
+ * <p>
+ * Règles de rôle : tout membre actif peut consulter les tâches ; seuls les rôles ADMIN et MEMBER
+ * peuvent les créer, les modifier et les assigner (un OBSERVER reçoit une erreur 403).
+ */
 @Service
 public class TaskService {
     private static final int MAX_NAME_LENGTH = 180;
@@ -64,6 +70,18 @@ public class TaskService {
         this.emailService = emailService;
     }
 
+    /**
+     * Crée une tâche au statut TODO (priorité MEDIUM par défaut). Si une personne est assignée,
+     * elle reçoit un e-mail de notification.
+     *
+     * @param projectId identifiant du projet
+     * @param userId    identifiant du créateur (ADMIN ou MEMBER)
+     * @param request   nom, description, échéance facultative, priorité et personne assignée facultative
+     * @return la tâche créée
+     * @throws ResponseStatusException 400 si le nom ou la description manque, ou si la personne assignée
+     *                                 n'est pas membre actif ; 403 si l'utilisateur est observateur ou hors du projet ;
+     *                                 404 si le projet n'existe pas
+     */
     @Transactional
     public TaskResponse createTask(Long projectId, Long userId, CreateTaskRequest request) {
         requireEditor(projectId, userId, "Un observateur ne peut pas créer de tâche.");
@@ -85,6 +103,24 @@ public class TaskService {
         return TaskResponse.from(task, request.assigneeUserId());
     }
 
+    /**
+     * Remplace toutes les informations d'une tâche.
+     * <ul>
+     *   <li>Chaque champ réellement modifié ajoute une ligne à l'historique.</li>
+     *   <li>La date de fin est renseignée au passage au statut DONE, conservée si la tâche était déjà
+     *       terminée et effacée si la tâche est rouverte.</li>
+     *   <li>Un changement de personne assignée envoie un e-mail à la nouvelle personne.</li>
+     * </ul>
+     *
+     * @param projectId identifiant du projet
+     * @param taskId    identifiant de la tâche
+     * @param userId    identifiant de l'auteur de la modification (ADMIN ou MEMBER)
+     * @param request   nouvelles valeurs ; priorité et statut obligatoires
+     * @return la tâche modifiée
+     * @throws ResponseStatusException 400 si un champ obligatoire manque ou si la personne assignée n'est pas membre actif ;
+     *                                 403 si l'utilisateur est observateur ou hors du projet ;
+     *                                 404 si le projet n'existe pas ou si la tâche n'appartient pas à ce projet
+     */
     @Transactional
     public TaskResponse updateTask(Long projectId, Long taskId, Long userId, UpdateTaskRequest request) {
         requireEditor(projectId, userId, "Un observateur ne peut pas modifier de tâche.");
@@ -124,6 +160,17 @@ public class TaskService {
         return TaskResponse.from(task, request.assigneeUserId());
     }
 
+    /**
+     * Renvoie l'historique d'une tâche, de la modification la plus récente à la plus ancienne,
+     * avec le nom de l'auteur de chaque modification. Accessible à tout membre actif.
+     *
+     * @param projectId identifiant du projet
+     * @param taskId    identifiant de la tâche
+     * @param userId    identifiant de l'utilisateur qui consulte
+     * @return les modifications, une par champ modifié
+     * @throws ResponseStatusException 403 si l'utilisateur n'est pas membre actif ;
+     *                                 404 si le projet n'existe pas ou si la tâche n'appartient pas à ce projet
+     */
     @Transactional(readOnly = true)
     public List<TaskHistoryResponse> findHistory(Long projectId, Long taskId, Long userId) {
         projectMemberService.requireActiveMember(projectId, userId);
@@ -144,6 +191,16 @@ public class TaskService {
                 .toList();
     }
 
+    /**
+     * Renvoie une tâche et la personne qui lui est assignée. Accessible à tout membre actif.
+     *
+     * @param projectId identifiant du projet
+     * @param taskId    identifiant de la tâche
+     * @param userId    identifiant de l'utilisateur qui consulte
+     * @return la tâche
+     * @throws ResponseStatusException 403 si l'utilisateur n'est pas membre actif ;
+     *                                 404 si le projet n'existe pas ou si la tâche n'appartient pas à ce projet
+     */
     @Transactional(readOnly = true)
     public TaskResponse findTask(Long projectId, Long taskId, Long userId) {
         projectMemberService.requireActiveMember(projectId, userId);
@@ -153,6 +210,15 @@ public class TaskService {
         return TaskResponse.from(task, currentAssignee(taskId));
     }
 
+    /**
+     * Liste les tâches d'un projet, de la plus récente à la plus ancienne, avec leur personne assignée.
+     * Les assignations sont chargées en une seule requête pour tout le projet.
+     *
+     * @param projectId identifiant du projet
+     * @param userId    identifiant de l'utilisateur qui consulte
+     * @return les tâches du projet
+     * @throws ResponseStatusException 404 si le projet n'existe pas ; 403 si l'utilisateur n'en est pas membre actif
+     */
     @Transactional(readOnly = true)
     public List<TaskResponse> findTasks(Long projectId, Long userId) {
         projectMemberService.requireActiveMember(projectId, userId);
@@ -171,12 +237,18 @@ public class TaskService {
                 .toList();
     }
 
+    /**
+     * Charge une tâche en vérifiant qu'elle appartient bien au projet de l'URL : sans ce contrôle,
+     * un membre d'un projet pourrait lire ou modifier la tâche d'un autre projet en changeant l'identifiant.
+     * Lève une erreur 404 sinon.
+     */
     private Task requireTask(Long projectId, Long taskId) {
         return taskRepository.findById(taskId)
                 .filter(found -> found.getProjectId().equals(projectId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tâche introuvable."));
     }
 
+    /** Renvoie l'identifiant de la personne actuellement assignée à la tâche, ou {@code null}. */
     private Long currentAssignee(Long taskId) {
         return taskAssignmentRepository.findByTaskId(taskId)
                 .stream()
@@ -185,6 +257,10 @@ public class TaskService {
                 .orElse(null);
     }
 
+    /**
+     * Ajoute une entrée d'historique si la valeur d'un champ change. Les valeurs sont stockées sous forme
+     * de texte brut (code d'énumération, date ISO, identifiant) ; le frontend les traduit pour l'affichage.
+     */
     private void track(List<TaskHistory> changes, Task task, Long userId, String field, Object oldValue, Object newValue) {
         if (Objects.equals(oldValue, newValue)) {
             return;
@@ -198,7 +274,11 @@ public class TaskService {
         changes.add(entry);
     }
 
-    // Une tâche n'a qu'une personne assignée : on remplace l'éventuelle assignation précédente.
+    /**
+     * Une tâche n'a qu'une personne assignée : l'éventuelle assignation précédente est remplacée,
+     * puis la nouvelle personne est notifiée. Rien n'est fait si la personne ne change pas,
+     * ce qui évite un e-mail en double. {@code null} retire l'assignation.
+     */
     private void assign(Task task, Long assigneeUserId, Long assignedByUserId) {
         List<TaskAssignment> current = taskAssignmentRepository.findByTaskId(task.getId());
         if (assigneeUserId != null
@@ -222,6 +302,9 @@ public class TaskService {
         notifyAssignee(task, assigneeUserId, assignedByUserId);
     }
 
+    /**
+     * Envoie l'e-mail d'assignation avec le nom de la tâche, du projet et de la personne qui assigne.
+     */
     private void notifyAssignee(Task task, Long assigneeUserId, Long assignedByUserId) {
         User assignee = userRepository.findById(assigneeUserId).orElse(null);
         if (assignee == null) {
@@ -237,6 +320,9 @@ public class TaskService {
         emailService.sendTaskAssigned(assignee.getEmail(), task.getName(), projectName, assignedByName);
     }
 
+    /**
+     * Lève une erreur 400 si la personne à assigner n'est pas membre actif du projet ({@code null} est accepté).
+     */
     private void requireAssignableMember(Long projectId, Long assigneeUserId) {
         if (assigneeUserId == null) {
             return;
@@ -252,12 +338,18 @@ public class TaskService {
         }
     }
 
+    /**
+     * Vérifie que l'utilisateur est membre actif avec le rôle ADMIN ou MEMBER ; un observateur reçoit une erreur 403.
+     */
     private void requireEditor(Long projectId, Long userId, String observerMessage) {
         if (projectMemberService.requireActiveMember(projectId, userId).getRole() == Role.OBSERVER) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, observerMessage);
         }
     }
 
+    /**
+     * Renvoie le nom sans espaces superflus ; erreur 400 s'il est vide ou dépasse 180 caractères.
+     */
     private String requireName(String name) {
         String trimmed = name == null ? "" : name.trim();
         if (trimmed.isEmpty() || trimmed.length() > MAX_NAME_LENGTH) {
@@ -266,6 +358,7 @@ public class TaskService {
         return trimmed;
     }
 
+    /** Renvoie la description sans espaces superflus ; erreur 400 si elle est vide. */
     private String requireDescription(String description) {
         String trimmed = description == null ? "" : description.trim();
         if (trimmed.isEmpty()) {

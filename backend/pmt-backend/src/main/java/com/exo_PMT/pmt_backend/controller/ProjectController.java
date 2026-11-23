@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Création et consultation des projets ({@code /api/projects}).
+ * <p>
+ * Le détail de chaque endpoint (paramètres, réponses, codes d'erreur) est décrit par les annotations
+ * OpenAPI et consultable sur {@code /swagger-ui.html}. Les règles métier sont dans le service.
+ */
 @Tag(name = "Projets", description = "Création et consultation des projets.")
 @RestController
 @RequestMapping("/api/projects")
