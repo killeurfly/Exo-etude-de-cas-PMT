@@ -27,6 +27,7 @@ PMT/
 ├── frontend/pmt-frontend/    Application Angular (+ Dockerfile, nginx.conf)
 ├── sql/schema-mysql.sql      Structure de la base et données de démonstration
 ├── sql/schema-pmt.svg        Schéma relationnel de la base (diagramme vectoriel, + .png)
+├── docs/couverture/          Rapports de couverture des tests (backend et frontend)
 ├── docker-compose.yml        Lancement de l'application complète
 ├── .env.example              Variables réglables de docker compose
 └── .github/workflows/ci.yml  Pipeline CI/CD
@@ -135,6 +136,21 @@ L'objectif est d'au moins 60 % de couverture des instructions et des branches, c
 
 - Backend : tests d'intégration MockMvc sur base H2 en mémoire (profil `test`) et tests unitaires Mockito.
 - Frontend : tests de composants et de services avec Vitest et `HttpTestingController`.
+
+### Rapports de couverture livrés
+
+Rapports produits par la CI pour le commit `48ec7aa` (23 novembre 2026), dans [docs/couverture](docs/couverture) :
+
+| Partie | Instructions | Branches | Synthèse | Rapport complet (HTML) |
+|---|---|---|---|---|
+| Backend (JaCoCo) | 91,2 % | 74,6 % | [image](docs/couverture/backend-couverture.png) | [backend-coverage.zip](docs/couverture/backend-coverage.zip) |
+| Frontend (Vitest) | 91,2 % | 67,5 % | [image](docs/couverture/frontend-couverture.png) | [frontend-coverage.zip](docs/couverture/frontend-coverage.zip) |
+
+Pour le rapport complet, décompresser l'archive et ouvrir `index.html` dans un navigateur (page par package ou par fichier, lignes couvertes en vert, non couvertes en rouge). Chaque exécution de la CI publie aussi des rapports à jour dans ses artefacts.
+
+![Couverture backend](docs/couverture/backend-couverture.png)
+
+![Couverture frontend](docs/couverture/frontend-couverture.png)
 
 ## Développement sans Docker
 
