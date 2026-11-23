@@ -98,7 +98,7 @@
                   <button type="button" (click)="cancelEdit()">Annuler</button>
                 </form>
               } @else {
-                <strong>{{ task.name }}</strong>
+                <a [routerLink]="['/projects', task.projectId, 'tasks', task.id]"><strong>{{ task.name }}</strong></a>
                 — priorité {{ priorityLabels[task.priority] }}
                 @if (task.dueDate) {
                   — échéance {{ task.dueDate }}

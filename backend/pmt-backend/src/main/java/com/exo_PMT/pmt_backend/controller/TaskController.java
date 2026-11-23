@@ -52,6 +52,15 @@ public class TaskController {
         return taskService.updateTask(projectId, taskId, userId, request);
     }
 
+    @GetMapping("/{taskId}")
+    public TaskResponse findTask(
+            @PathVariable Long projectId,
+            @PathVariable Long taskId,
+            @RequestParam Long userId
+    ) {
+        return taskService.findTask(projectId, taskId, userId);
+    }
+
     @GetMapping("/{taskId}/history")
     public List<TaskHistoryResponse> findHistory(
             @PathVariable Long projectId,

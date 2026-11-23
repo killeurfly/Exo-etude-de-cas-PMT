@@ -29,6 +29,12 @@ export class TaskService {
     });
   }
 
+  getTask(projectId: number, taskId: number, userId: number): Observable<Task> {
+    return this.http.get<Task>(`${this.tasksUrl(projectId)}/${taskId}`, {
+      params: new HttpParams().set('userId', userId),
+    });
+  }
+
   getHistory(projectId: number, taskId: number, userId: number): Observable<TaskHistoryEntry[]> {
     return this.http.get<TaskHistoryEntry[]>(`${this.tasksUrl(projectId)}/${taskId}/history`, {
       params: new HttpParams().set('userId', userId),

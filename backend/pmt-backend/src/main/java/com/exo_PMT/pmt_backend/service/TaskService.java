@@ -145,6 +145,15 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
+    public TaskResponse findTask(Long projectId, Long taskId, Long userId) {
+        projectMemberService.requireActiveMember(projectId, userId);
+
+        Task task = requireTask(projectId, taskId);
+
+        return TaskResponse.from(task, currentAssignee(taskId));
+    }
+
+    @Transactional(readOnly = true)
     public List<TaskResponse> findTasks(Long projectId, Long userId) {
         projectMemberService.requireActiveMember(projectId, userId);
 

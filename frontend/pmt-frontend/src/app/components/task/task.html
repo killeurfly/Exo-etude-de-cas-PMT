@@ -1,1 +1,46 @@
-<p>task works!</p>
+<p><a [routerLink]="['/projects', projectId]">← Retour au projet</a></p>
+
+@if (message()) {
+  <p role="status">{{ message() }}</p>
+}
+
+@if (task(); as task) {
+  <h2>{{ task.name }}</h2>
+  <p>{{ task.description }}</p>
+
+  <dl>
+    <dt>Statut</dt>
+    <dd>{{ statusLabels[task.status] }}</dd>
+
+    <dt>Priorité</dt>
+    <dd>{{ priorityLabels[task.priority] }}</dd>
+
+    <dt>Échéance</dt>
+    <dd>{{ task.dueDate ? (task.dueDate | date: 'dd/MM/yyyy') : 'Aucune' }}</dd>
+
+    <dt>Assignée à</dt>
+    <dd>{{ memberName(task.assigneeUserId) }}</dd>
+
+    <dt>Créée par</dt>
+    <dd>{{ memberName(task.createdByUserId) }}</dd>
+
+    @if (task.completedAt) {
+      <dt>Terminée le</dt>
+      <dd>{{ task.completedAt | date: 'dd/MM/yyyy à HH:mm' }}</dd>
+    }
+  </dl>
+
+  <h3>Historique</h3>
+  <ul>
+    @for (entry of history(); track entry.id) {
+      <li>
+        {{ entry.changedAt | date: 'dd/MM/yyyy HH:mm' }}
+        — {{ entry.changedByName ?? 'Utilisateur supprimé' }} :
+        {{ historyFieldLabels[entry.fieldName] ?? entry.fieldName }}
+        {{ historyValue(entry, entry.oldValue) }} → {{ historyValue(entry, entry.newValue) }}
+      </li>
+    } @empty {
+      <li>Aucune modification enregistrée.</li>
+    }
+  </ul>
+}

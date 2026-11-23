@@ -329,6 +329,50 @@ class TaskControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+        @Test
+        void observerCanReadSingleTask() throws Exception {
+        Task task = saveTask("Lire la tâche");
+
+        mockMvc.perform(get(tasksUrl() + "/" + task.getId())
+                        .queryParam("userId", observer.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(task.getId().intValue())))
+                .andExpect(jsonPath("$.name", is("Lire la tâche")))
+                .andExpect(jsonPath("$.status", is("TODO")))
+                .andExpect(jsonPath("$.assigneeUserId").doesNotExist());
+        }
+
+        @Test
+        void outsiderCannotReadSingleTask() throws Exception {
+        Task task = saveTask("Secrète");
+        User outsider = createUser("Outsider", "outsider@example.test");
+
+        mockMvc.perform(get(tasksUrl() + "/" + task.getId())
+                        .queryParam("userId", outsider.getId().toString()))
+                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void taskFromAnotherProjectIsNotFound() throws Exception {
+        Project otherProject = new Project();
+        otherProject.setName("Autre");
+        otherProject.setDescription("Autre projet");
+        otherProject.setStartDate(LocalDate.of(2026, 11, 18));
+        otherProject.setCreatedByUserId(member.getId());
+        otherProject = projectRepository.save(otherProject);
+
+        Task foreignTask = new Task();
+        foreignTask.setProjectId(otherProject.getId());
+        foreignTask.setName("Ailleurs");
+        foreignTask.setDescription("Tâche d'un autre projet");
+        foreignTask = taskRepository.save(foreignTask);
+
+        mockMvc.perform(get(tasksUrl() + "/" + foreignTask.getId())
+                        .queryParam("userId", member.getId().toString()))
+                .andExpect(status().isNotFound());
+        }
+
+    
     private Task saveTask(String name) {
         Task task = new Task();
         task.setProjectId(project.getId());
