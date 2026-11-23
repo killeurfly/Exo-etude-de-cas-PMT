@@ -14,5 +14,5 @@
   </button>
 </form>
 
-<p *ngIf="message()">{{ message() }}</p>
+<p *ngIf="message()" [class.message-error]="messageIsError()" [attr.role]="messageIsError() ? 'alert' : 'status'">{{ message() }}</p>
 <p>Déjà inscrit ? <a routerLink="/login">Se connecter</a></p>

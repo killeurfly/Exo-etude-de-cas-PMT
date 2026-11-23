@@ -37,7 +37,7 @@
   </form>
 </section>
 
-<p *ngIf="message()" role="status">{{ message() }}</p>
+<p *ngIf="message()" [class.message-error]="messageIsError()" [attr.role]="messageIsError() ? 'alert' : 'status'">{{ message() }}</p>
 <p *ngIf="loading()">Chargement des projets…</p>
 
 <section aria-labelledby="projects-heading">

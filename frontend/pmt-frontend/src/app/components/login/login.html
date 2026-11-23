@@ -9,5 +9,5 @@
   </button>
 </form>
 
-<p *ngIf="message()">{{ message() }}</p>
+<p *ngIf="message()" class="message-error" role="alert">{{ message() }}</p>
 <p>Pas encore de compte ? <a routerLink="/register">S’inscrire</a></p>

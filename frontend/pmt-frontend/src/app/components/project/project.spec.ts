@@ -115,6 +115,7 @@ describe('ProjectDetail', () => {
     });
     expect(component.members()).toEqual([adminMember, invited]);
     expect(component.message()).toContain('rejoindra le projet à son inscription');
+    expect(component.messageIsError()).toBe(false);
   });
 
   it('should explain why an invitation is refused', async () => {
@@ -123,8 +124,14 @@ describe('ProjectDetail', () => {
     component.inviteForm = { email: 'bob@example.test', role: 'MEMBER' };
 
     component.invite();
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     expect(component.message()).toBe('Cette personne fait déjà partie du projet.');
+    expect(component.messageIsError()).toBe(true);
+    const error = (fixture.nativeElement as HTMLElement).querySelector('.message-error');
+    expect(error?.textContent).toContain('Cette personne fait déjà partie du projet.');
+    expect(error?.getAttribute('role')).toBe('alert');
     expect(component.inviting()).toBe(false);
   });
 
@@ -198,6 +205,7 @@ describe('ProjectDetail', () => {
     expect(component.tasks()).toEqual([created, existingTask]);
     expect(component.taskForm.name).toBe('');
     expect(component.taskMessage()).toBe('Tâche « Nouvelle tâche » créée.');
+    expect(component.taskMessageIsError()).toBe(false);
   });
 
   it('should explain a refused task creation', async () => {
@@ -207,6 +215,7 @@ describe('ProjectDetail', () => {
     component.createTask();
 
     expect(component.taskMessage()).toBe('Ton rôle ne permet pas de créer une tâche dans ce projet.');
+    expect(component.taskMessageIsError()).toBe(true);
     expect(component.creatingTask()).toBe(false);
     expect(component.tasks()).toEqual([existingTask]);
   });

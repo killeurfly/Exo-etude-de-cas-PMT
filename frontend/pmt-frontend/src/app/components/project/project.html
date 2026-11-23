@@ -10,7 +10,7 @@
 }
 
 @if (message()) {
-  <p role="status">{{ message() }}</p>
+  <p [class.message-error]="messageIsError()" [attr.role]="messageIsError() ? 'alert' : 'status'">{{ message() }}</p>
 }
 
 <section aria-labelledby="tasks-heading">
@@ -49,7 +49,7 @@
   }
 
   @if (taskMessage()) {
-    <p role="status">{{ taskMessage() }}</p>
+    <p [class.message-error]="taskMessageIsError()" [attr.role]="taskMessageIsError() ? 'alert' : 'status'">{{ taskMessage() }}</p>
   }
 
   <div class="task-board">
@@ -119,7 +119,7 @@
                 @if (historyTaskId() === task.id) {
                   <div class="task-history">
                     @if (historyMessage()) {
-                      <p role="status">{{ historyMessage() }}</p>
+                      <p class="message-error" role="alert">{{ historyMessage() }}</p>
                     }
                     <ul>
                       @for (entry of history(); track entry.id) {

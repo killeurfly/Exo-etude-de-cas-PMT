@@ -44,6 +44,7 @@ export class ProjectDetail implements OnInit {
   readonly project = signal<Project | null>(null);
   readonly members = signal<ProjectMember[]>([]);
   readonly message = signal('');
+  readonly messageIsError = signal(false);
   readonly inviting = signal(false);
   readonly currentRole = computed(() => {
     const userId = this.authService.currentUser()?.id;
@@ -64,6 +65,7 @@ export class ProjectDetail implements OnInit {
     })),
   );
   readonly taskMessage = signal('');
+  readonly taskMessageIsError = signal(false);
   readonly creatingTask = signal(false);
   readonly canEditTasks = computed(() => this.currentRole() === 'ADMIN' || this.currentRole() === 'MEMBER');
   readonly assignableMembers = computed(() =>
@@ -95,21 +97,21 @@ export class ProjectDetail implements OnInit {
     this.projectId = Number(this.route.snapshot.paramMap.get('id'));
     const user = this.authService.currentUser();
     if (user === null) {
-      this.message.set('Connecte-toi pour consulter ce projet.');
+      this.showMessage('Connecte-toi pour consulter ce projet.', true);
       return;
     }
 
     this.projectService.getProject(this.projectId, user.id).subscribe({
       next: (project) => this.project.set(project),
       error: (error: unknown) => {
-        this.message.set(getProjectErrorMessage(error, 'Impossible de charger le projet.'));
+        this.showMessage(getProjectErrorMessage(error, 'Impossible de charger le projet.'), true);
       },
     });
     this.loadMembers(user.id);
     this.taskService.getTasks(this.projectId, user.id).subscribe({
       next: (tasks) => this.tasks.set(tasks),
       error: (error: unknown) => {
-        this.taskMessage.set(getProjectErrorMessage(error, 'Impossible de charger les tâches.'));
+        this.showTaskMessage(getProjectErrorMessage(error, 'Impossible de charger les tâches.'), true);
       },
     });
   }
@@ -130,11 +132,11 @@ export class ProjectDetail implements OnInit {
         this.tasks.update((tasks) => [task, ...tasks]);
         this.taskForm = this.emptyTaskForm();
         this.creatingTask.set(false);
-        this.taskMessage.set(`Tâche « ${task.name} » créée.`);
+        this.showTaskMessage(`Tâche « ${task.name} » créée.`);
       },
       error: (error: unknown) => {
         this.creatingTask.set(false);
-        this.taskMessage.set(getTaskErrorMessage(error));
+        this.showTaskMessage(getTaskErrorMessage(error), true);
       },
     });
   }
@@ -177,11 +179,11 @@ export class ProjectDetail implements OnInit {
         this.tasks.update((tasks) => tasks.map((task) => (task.id === updated.id ? updated : task)));
         this.editingTaskId.set(null);
         this.savingTask.set(false);
-        this.taskMessage.set(`Tâche « ${updated.name} » modifiée.`);
+        this.showTaskMessage(`Tâche « ${updated.name} » modifiée.`);
       },
       error: (error: unknown) => {
         this.savingTask.set(false);
-        this.taskMessage.set(getTaskErrorMessage(error, 'update'));
+        this.showTaskMessage(getTaskErrorMessage(error, 'update'), true);
       },
     });
   }
@@ -243,13 +245,13 @@ export class ProjectDetail implements OnInit {
         this.members.update((members) => [...members, member]);
         this.inviteForm = { email: '', role: 'MEMBER' };
         this.inviting.set(false);
-        this.message.set(member.status === 'ACTIVE'
+        this.showMessage(member.status === 'ACTIVE'
           ? `${member.email} a rejoint le projet.`
           : `Invitation enregistrée : ${member.email} rejoindra le projet à son inscription.`);
       },
       error: (error: unknown) => {
         this.inviting.set(false);
-        this.message.set(getInviteErrorMessage(error));
+        this.showMessage(getInviteErrorMessage(error), true);
       },
     });
   }
@@ -267,10 +269,10 @@ export class ProjectDetail implements OnInit {
     this.projectMemberService.updateRole(this.projectId, member.id, user.id, role).subscribe({
       next: (updated) => {
         this.members.update((members) => members.map((m) => (m.id === updated.id ? updated : m)));
-        this.message.set(`Rôle de ${updated.email} : ${this.roleLabels[updated.role]}.`);
+        this.showMessage(`Rôle de ${updated.email} : ${this.roleLabels[updated.role]}.`);
       },
       error: (error: unknown) => {
-        this.message.set(getRoleErrorMessage(error));
+        this.showMessage(getRoleErrorMessage(error), true);
         // Recharge la liste pour remettre le sélecteur sur le rôle réel.
         this.loadMembers(user.id);
       },
@@ -286,6 +288,18 @@ export class ProjectDetail implements OnInit {
     return member?.name ?? member?.email ?? null;
   }
 
+  /** Affiche un message ; une erreur est mise en évidence en rouge. */
+  private showMessage(text: string, isError = false): void {
+    this.message.set(text);
+    this.messageIsError.set(isError);
+  }
+
+  /** Affiche un message ; une erreur est mise en évidence en rouge. */
+  private showTaskMessage(text: string, isError = false): void {
+    this.taskMessage.set(text);
+    this.taskMessageIsError.set(isError);
+  }
+
   /** Valeurs initiales du formulaire de création de tâche. */
   private emptyTaskForm(): CreateTaskRequest {
     return { name: '', description: '', dueDate: null, priority: 'MEDIUM', assigneeUserId: null };
@@ -296,7 +310,7 @@ export class ProjectDetail implements OnInit {
     this.projectMemberService.getMembers(this.projectId, userId).subscribe({
       next: (members) => this.members.set(members),
       error: (error: unknown) => {
-        this.message.set(getProjectErrorMessage(error, 'Impossible de charger les membres.'));
+        this.showMessage(getProjectErrorMessage(error, 'Impossible de charger les membres.'), true);
       },
     });
   }

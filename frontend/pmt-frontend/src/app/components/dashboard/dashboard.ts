@@ -18,6 +18,7 @@ import { getProjectErrorMessage, ProjectService } from '../../services/project.s
 export class Dashboard implements OnInit {
   readonly projects = signal<Project[]>([]);
   readonly message = signal('');
+  readonly messageIsError = signal(false);
   readonly loading = signal(false);
   readonly saving = signal(false);
   form: CreateProjectRequest = { name: '', description: '', startDate: '' };
@@ -30,7 +31,7 @@ export class Dashboard implements OnInit {
   ngOnInit(): void {
     const user = this.authService.currentUser();
     if (user === null) {
-      this.message.set('Connecte-toi pour consulter tes projets.');
+      this.showMessage('Connecte-toi pour consulter tes projets.', true);
       return;
     }
 
@@ -41,7 +42,7 @@ export class Dashboard implements OnInit {
   createProject(): void {
     const user = this.authService.currentUser();
     if (user === null) {
-      this.message.set('Connecte-toi pour créer un projet.');
+      this.showMessage('Connecte-toi pour créer un projet.', true);
       return;
     }
 
@@ -52,13 +53,19 @@ export class Dashboard implements OnInit {
         this.projects.update((projects) => [project, ...projects]);
         this.form = { name: '', description: '', startDate: '' };
         this.saving.set(false);
-        this.message.set('Projet créé. Tu en es administrateur.');
+        this.showMessage('Projet créé. Tu en es administrateur.');
       },
       error: (error: unknown) => {
         this.saving.set(false);
-        this.message.set(getProjectErrorMessage(error, 'Impossible de créer le projet.'));
+        this.showMessage(getProjectErrorMessage(error, 'Impossible de créer le projet.'), true);
       },
     });
+  }
+
+  /** Affiche un message ; une erreur est mise en évidence en rouge. */
+  private showMessage(text: string, isError = false): void {
+    this.message.set(text);
+    this.messageIsError.set(isError);
   }
 
   /** Charge les projets de l'utilisateur. */
@@ -71,7 +78,7 @@ export class Dashboard implements OnInit {
       },
       error: (error: unknown) => {
         this.loading.set(false);
-        this.message.set(getProjectErrorMessage(error, 'Impossible de charger les projets.'));
+        this.showMessage(getProjectErrorMessage(error, 'Impossible de charger les projets.'), true);
       },
     });
   }

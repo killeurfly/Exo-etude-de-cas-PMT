@@ -1,7 +1,7 @@
 <p><a [routerLink]="['/projects', projectId]">← Retour au projet</a></p>
 
 @if (message()) {
-  <p role="status">{{ message() }}</p>
+  <p class="message-error" role="alert">{{ message() }}</p>
 }
 
 @if (task(); as task) {
