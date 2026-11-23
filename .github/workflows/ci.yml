@@ -32,9 +32,17 @@ jobs:
         run: npm ci
         working-directory: frontend/pmt-frontend
 
-      - name: Run tests
-        run: npx ng test --watch=false
+      - name: Run tests with coverage (minimum 60 %)
+        run: npx ng test --watch=false --coverage
         working-directory: frontend/pmt-frontend
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/pmt-frontend/coverage/
+          if-no-files-found: ignore
 
       - name: Build application
         run: npm run build
@@ -55,6 +63,14 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pmt-backend/pom.xml
 
-      - name: Run tests and package application
+      - name: Run tests, check coverage (minimum 60 %) and package application
         run: bash ./mvnw -B verify
         working-directory: backend/pmt-backend
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/pmt-backend/target/site/jacoco/
+          if-no-files-found: ignore
